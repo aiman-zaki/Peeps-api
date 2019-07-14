@@ -1,0 +1,10 @@
+__pycache__/*
+.vscode
+ENV
+api/icress/config.py
+api/icress/__pycache__/*
+database
+model
+config.py
+test
+*/__pycache__/*
