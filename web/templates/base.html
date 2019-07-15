@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {% block head %}
+    <link rel="stylesheet" type="text/css" href="{{url_for('static',filename='css/bootstrap-material-design.min.css')}}" />
+    <title>CSP650 - {% block title %} index {% endblock %} </title>
+    {% endblock %}
+</head>
+<body style="background-color: #212121">
+    {% block javscript %}
+    <script src="{{url_for('static',filename='js/jquery.min.js')}}"></script>
+    <script src="{{url_for('static',filename='js/popper.min.js')}}"></script>
+    <script src="{{url_for('static',filename='js/bootstrap-material-design.min.js')}}"></script>
+    {% endblock %}
+        <nav class="navbar navbar-dark bg-primary">
+                <img src="{{url_for('static',filename='images/logo.png')}}"  class="align-top" alt="" />
+                
+        </nav>
+    <div id="content">{% block content %}{% endblock %}</div>
+    <div id="footer">
+       
+    </div>
+
+</body>
+</html>
