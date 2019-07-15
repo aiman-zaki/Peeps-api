@@ -1,5 +1,4 @@
 from pymongo import MongoClient
-import jwt
 from flask_jwt_extended import (
     JWTManager, jwt_required, create_access_token,
     get_jwt_identity,decode_token,create_refresh_token,jwt_refresh_token_required,
@@ -12,11 +11,9 @@ from flask import request
 from flask_cors import CORS
 from flask_restful import Resource, Api, abort
 from flask_mail import Mail, Message
-import api.icress.core as icress
-import api.icress.autofetch as ilearn
 from werkzeug.security import generate_password_hash, check_password_hash
 import config
-import app
+
 
 
 client = MongoClient("mongodb://%s:%s@localhost:27017/" % ("admin","password"))
@@ -25,7 +22,9 @@ db = client.api
 
 
 class Register(Resource):
+    
     def post(self):
+        from app import mail
         email = request.json['email']
         password = request.json['password']
         if not re.match(r'^[A-Za-z0-9\.\+_-]+@[A-Za-z0-9\._-]+\.[a-zA-Z]*$', email):
@@ -42,7 +41,7 @@ class Register(Resource):
         msg = Message(recipients=[email],
                         body=message,
                         subject='Acitivation Code')
-        app.mail.send(msg)
+        mail.send(msg)
         return {'email':email}
 
 class Activate(Resource):
