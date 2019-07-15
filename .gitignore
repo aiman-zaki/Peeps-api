@@ -1,6 +1,6 @@
 __pycache__/*
 .vscode
-ENV
+env
 api/icress/config.py
 api/icress/__pycache__/*
 database
