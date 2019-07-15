@@ -7,7 +7,7 @@ from flask_jwt_extended import (
 import re
 import datetime 
 import functools
-from flask import Flask,jsonify,request,json
+from flask import Flask,jsonify,request,json,render_template
 from flask_cors import CORS
 from flask_restful import Resource, Api, abort
 from flask_mail import Mail, Message
@@ -35,6 +35,10 @@ def expired_token_callback(expired_token):
         'sub_status':42,
         'msg': 'The {} token has expired'.format(token_type)
     }),401
+
+@app.route('/')
+def index():
+    return render_template('index.html')
 
 
 
