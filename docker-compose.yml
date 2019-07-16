@@ -7,10 +7,13 @@ services:
       dockerfile: "./deployment/nginx/Dockerfile"
     ports:
       - "8080:8080"
+    network_mode: host
 
   mongo:
     image: mongo
     restart: always
+    ports:
+      - 27017:27017
     environment:
       MONGO_INITDB_ROOT_USERNAME: admin
       MONGO_INITDB_ROOT_PASSWORD: password
