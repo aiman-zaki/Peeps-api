@@ -1,0 +1,16 @@
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.js"></script>
+
+<script>
+    var token = "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE1NjMyODEwMjIsIm5iZiI6MTU2MzI4MTAyMiwianRpIjoiYjgxMTYyY2QtMjYyMS00N2JhLThlZDEtZjliMzE0MzE0Nzg3IiwiZXhwIjoxNTYzMjgxOTIyLCJpZGVudGl0eSI6ImFpbWFuMHpha2lAZ21haWwuY29tIiwiZnJlc2giOmZhbHNlLCJ0eXBlIjoiYWNjZXNzIn0.3Alg7D-hOzHUVri4pVmV8oPhXuMqaD0igJPyq7Ph5d0"
+    var socket = io('http://localhost:5000',{
+        transportOptions:{
+        polling: {
+        extraHeaders: {
+          'Authorization': token
+            }
+        } 
+    }
+    });
+
+
+</script>as
