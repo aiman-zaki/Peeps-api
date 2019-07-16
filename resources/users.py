@@ -2,12 +2,12 @@ from pymongo import MongoClient
 from flask_jwt_extended import (
     JWTManager, jwt_required, create_access_token,
     get_jwt_identity,decode_token,create_refresh_token,jwt_refresh_token_required,
-
+    set_access_cookies,set_refresh_cookies
 )
 import re
 import datetime
 import functools
-from flask import request
+from flask import request , jsonify
 from flask_cors import CORS
 from flask_restful import Resource, Api, abort
 from flask_mail import Mail, Message
@@ -78,7 +78,10 @@ class Login(Resource):
             abort(400,message="Password is incorrect")
         access_token = create_access_token(email)
         refresh_token = create_refresh_token(email)
-      
+        #resp = jsonify({'login':True})
+        #set_access_cookies(resp,access_token)
+        #set_refresh_cookies(resp,refresh_token)
+        #return resp
         return {'email':email, 'access_token':access_token,'refresh_token':refresh_token}
 
 class TokenRefresh(Resource):
@@ -86,6 +89,8 @@ class TokenRefresh(Resource):
     def post(self):
         current_user = get_jwt_identity()
         access_token = create_access_token(current_user)
+        #resp = jsonify({'refresh':True})
+        #set_access_cookies(resp,access_token)
         return {
             'access_token':access_token
         }

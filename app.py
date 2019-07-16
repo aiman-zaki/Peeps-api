@@ -12,7 +12,7 @@ from flask_cors import CORS
 from flask_restful import Resource, Api, abort
 from flask_mail import Mail, Message
 from resources import users,icress
-
+from flask_socketio import SocketIO, emit,ConnectionRefusedError
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.serving import run_simple
 import config
@@ -23,7 +23,7 @@ api = Api(app)
 CORS(app)
 mail = Mail(app)
 jwt = JWTManager(app)
-
+socketio = SocketIO(app)
 app.config['PROPAGATE_EXCEPTIONS'] = True
 
 
@@ -39,6 +39,29 @@ def expired_token_callback(expired_token):
 @app.route('/')
 def index():
     return render_template('index.html')
+@app.route('/client')
+def testsocketio():
+    return render_template('test-socketio.html')
+@app.errorhandler(404)
+def page_not_found(e):
+    return render_template('404.html'),404
+
+
+@socketio.on('connect')
+@jwt_required
+def connect():
+    print("Client Connected")
+
+
+@socketio.on('disconnect')
+def disconnect():
+    print("Client Disconnected")
+
+
+
+
+
+
 
 
 
@@ -53,4 +76,4 @@ api.add_resource(icress.Timetable,'/api/icress/<faculty>/<course>/timetable')
 
 
 if __name__ == "__main__":
-    app.run(debug=True, host='0.0.0.0',port='5000')
+    socketio.run(app,port=5000)
