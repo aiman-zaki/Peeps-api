@@ -6,93 +6,59 @@ from flask_jwt_extended import (
 )
 import re
 import datetime
+import os
 import functools
-from flask import request , jsonify
+from flask import request , jsonify, json , Response
 from flask_cors import CORS
 from flask_restful import Resource, Api, abort
-from flask_mail import Mail, Message
 from werkzeug.security import generate_password_hash, check_password_hash
-import config
+from werkzeug.utils import secure_filename
+from bson import json_util
+from app import db , app 
+from bson.json_util import dumps, ObjectId
 
+def allowed_file(filename):
+    ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
 
+    return '.' in filename and \
+        filename.rsplit('.',1)[1].lower() in ALLOWED_EXTENSIONS 
 
-client = MongoClient("mongodb://%s:%s@localhost:27017/" % ("admin","password"))
-db = client.api
+def fileExtension(filename):
+    return filename.rsplit('.',1)[1].lower()
 
-
-
-class Register(Resource):
+class ProfileImage(Resource):
+    def post(self):
+        userId = request.form['_id']
+        file = request.files['file']
+        if file and allowed_file(file.filename):
+            path = app.root_path+app.config['UPLOAD_FOLDER']+userId
+            if os.path.exists(path) is False:
+                os.mkdir(path)
+            file.save(os.path.join(path,"profile."+fileExtension(file.filename)))
+            return {"message":"Profile Picture Updated"},200
+        return {"message":"Oops something is wrong"}
     
-    def post(self):
-        from app import mail
-        email = request.json['email']
-        password = request.json['password']
-        if not re.match(r'^[A-Za-z0-9\.\+_-]+@[A-Za-z0-9\._-]+\.[a-zA-Z]*$', email):
-            abort(400, message='email is not valid')
-        if len(password) < 6:
-            abort(400,message="password is too short")
-        if db.users.find({'email': email}).count() != 0:
-            if db.users.find_one({'email': email})['active'] == True:
-                abort(400, message='email is alread used.')
-        else:
-            db.users.insert_one({'email': email, 'password':generate_password_hash(password), 'active':False})
-        access_token = create_access_token(identity=email)
-        message = 'Hello\n Thank You for Registering to our Website, Here Your Activation Code \n <a href="http:127.0.0.1:5000/v1/confirm/'+access_token+'"/>'
-        msg = Message(recipients=[email],
-                        body=message,
-                        subject='Acitivation Code')
-        mail.send(msg)
-        return {'email':email}
-
-class Activate(Resource):
-    def put(self):
-        activation_code = request.json['activation_code']
-        try:
-            decoded = decode_token(activation_code)
-        except:
-           return {'message':'Something went wrong'},500
-        email = decoded['email']
-        db.users.update({'email':email}, {'$set':{'active':True}})
-
-class ActivateURL(Resource):
-    def get(self,token):
-        activation_code = token
-        try:
-            decoded = decode_token(activation_code)
-        except:
-           return {'message':'Something went wrong'},500
-        print(decoded)
-        current_user = get_jwt_identity()
-        db.users.update({'email':current_user}, {'$set':{'active':True}})
-
-
-class Login(Resource):
     def get(self):
-        email = request.json['email']
-        password = request.json['password']
-        if db.users.find({'email':email}).count() == 0:
-            abort(400,message = 'User is not found')
+        pass
 
-        user = db.users.find_one({'email':email})
-        if not check_password_hash(user['password'],password):
-            abort(400,message="Password is incorrect")
-        access_token = create_access_token(email)
-        refresh_token = create_refresh_token(email)
-        #resp = jsonify({'login':True})
-        #set_access_cookies(resp,access_token)
-        #set_refresh_cookies(resp,refresh_token)
-        #return resp
-        return {'email':email, 'access_token':access_token,'refresh_token':refresh_token}
+        
 
-class TokenRefresh(Resource):
-    @jwt_refresh_token_required
+class Profile(Resource):
+    @jwt_required
+    def get(self):
+        current_user = get_jwt_identity()
+        user = db.users.find_one(
+            {'_id': ObjectId(current_user)},{'_id':1,'profile':1}
+        )
+        return Response(
+            json_util.dumps(user),
+            mimetype='application/json'
+        )
+
+    @jwt_required
     def post(self):
         current_user = get_jwt_identity()
-        access_token = create_access_token(current_user)
-        #resp = jsonify({'refresh':True})
-        #set_access_cookies(resp,access_token)
-        return {
-            'access_token':access_token
-        }
-
-
+        contact_no = request.json['contact_no']
+        programme_code = request.json['programme_code']
+        db.users.update_one({'email':current_user},{'$set':{'profile':{'contact_no':contact_no,'programme_code':programme_code}}})
+    

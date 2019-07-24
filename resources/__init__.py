@@ -1,3 +1,3 @@
-from resources import users
+from resources import auth
 from resources import icress
-print("test")
+from resources import groupworks
