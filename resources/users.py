@@ -48,7 +48,7 @@ class Profile(Resource):
     def get(self):
         current_user = get_jwt_identity()
         user = db.users.find_one(
-            {'_id': ObjectId(current_user)},{'_id':1,'profile':1}
+            {'_id': ObjectId(current_user)},{'_id':1,'profile':1,'joined_group':1,'email':1}
         )
         return Response(
             json_util.dumps(user),
@@ -61,4 +61,37 @@ class Profile(Resource):
         contact_no = request.json['contact_no']
         programme_code = request.json['programme_code']
         db.users.update_one({'email':current_user},{'$set':{'profile':{'contact_no':contact_no,'programme_code':programme_code}}})
+
+
+class Inbox(Resource):
+    @jwt_required
+    def get(self,filtered):
+        #TODO : FILTERED WORD NEED TO BE SANITIZED WITH INJECTION or Something
+        current_user = get_jwt_identity()
+        inbox = db.users.find_one({'_id': ObjectId(current_user)},{filtered:1})
+        return Response(
+            json_util.dumps(inbox),
+            mimetype='application/json'
+        )
     
+class ReplyInvitationInbox(Resource):
+    @jwt_required
+    def post(self):
+        current_user = get_jwt_identity()
+        answer = request.json['answer']
+        group_id = request.json['group_id']
+        print(group_id)
+        #TODO: BETTER QUERIES
+        db.users.update_one({
+            '$and':[
+                {'_id':ObjectId(current_user)},
+                {'inbox.group_invitation.group_id':ObjectId(group_id)}
+            ]
+        },{'$set':{'inbox.group_invitation.$.accept':answer}})
+        #TODO : NEED TO LEARN OPTIMIZED QUERIES BRAH
+        if answer == "accept":
+            db.users.update_one({'_id':ObjectId(current_user)},{'$push':{'joined_group':group_id}},upsert=True)
+            db.groupworks.update_one({'_id':ObjectId(group_id)},{'$push':{'members':current_user}},upsert=True)
+    
+
+        

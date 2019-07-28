@@ -19,7 +19,6 @@ from bson.json_util import dumps, ObjectId
 
 
 class GroupWork(Resource):
-    #list of joined groupwork
     @jwt_required
     def get(self):
         current_user = get_jwt_identity()
@@ -31,18 +30,39 @@ class GroupWork(Resource):
         jsonList = []
         for group in groups:
             jsonList.append(group)
-        print(jsonList)
         return Response(
             json_util.dumps(jsonList),
             mimetype='application/json',
 
         )
-
-           
-
-    
     @jwt_required
     def post(self):
+        current_user = get_jwt_identity()
+        name = request.json['name']
+        description = request.json['description']
+        course = request.json['course']
+        invitation_list = request.json['members']
+        _id = db.groupworks.insert_one({
+            'creator':current_user,
+            'name':name,
+            'description':description,
+            'course':course,
+            'invitation_list':invitation_list
+        })
+        db.users.update_many({'email': {'$in': invitation_list}}, {'$push': {'inbox.group_invitation': {'inviter':current_user,'group_id':_id.inserted_id,'accept':False}}})
+        return Response(
+            status=200
+        )
+      
+
+class GroupWorkDetails(Resource):
+    def put(self):
         #current_user = get_jwt_identity()
-       # _groupid = db.groupworks.insert()
-       pass
+        active_group_list = request.json['active_group']
+        active_group_list = [ObjectId(data) for data in active_group_list]
+        data = db.groupworks.find({'_id':{'$in':active_group_list}})
+
+        return Response(
+            json_util.dumps(data),
+            mimetype='application/json'
+        )

@@ -12,7 +12,7 @@ from flask_cors import CORS
 from flask_restful import Resource, Api, abort
 from flask_mail import Mail, Message
 
-from flask_socketio import SocketIO, emit,ConnectionRefusedError
+from flask_socketio import SocketIO, emit,ConnectionRefusedError,Namespace
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.serving import run_simple
 import config
