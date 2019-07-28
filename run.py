@@ -17,8 +17,9 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.serving import run_simple
 import config
 
-from app import app, jwt , socketio, api
+from app import app, jwt , api
 from resources import auth,icress,users,groupworks
+from socket_io import socketio , GroupChat
 
 
 @jwt.expired_token_loader
@@ -41,30 +42,25 @@ def page_not_found(e):
     return render_template('404.html'),404
 
 
-@socketio.on('connect')
-@jwt_required
-def connect():
-    print("Client Connected")
-
-
-@socketio.on('disconnect')
-def disconnect():
-    print("Client Disconnected")
 
 
 
-api.add_resource(groupworks.GroupWork, '/api/groupworks/joined_group')
+api.add_resource(groupworks.GroupWork, '/api/groupworks/user')
+api.add_resource(groupworks.GroupWorkDetails, '/api/groupworks/detail')
 api.add_resource(auth.Register, '/api/auth/register')
 api.add_resource(auth.Activate, '/api/auth/activate')
 api.add_resource(auth.ActivateURL, '/api/auth/confirm/<token>')
 api.add_resource(auth.Login, '/api/auth/login')
 api.add_resource(auth.TokenRefresh, '/api/auth/refresh')
+api.add_resource(users.ReplyInvitationInbox, '/api/users/inbox/replyinvitation')
+api.add_resource(users.Inbox, '/api/users/inbox/<filtered>')
 api.add_resource(users.Profile, '/api/users/profile')
 api.add_resource(users.ProfileImage, '/api/users/upload')
 api.add_resource(icress.Faculty,'/api/icress/faculty')
 api.add_resource(icress.Course,'/api/icress/<faculty>/course')
 api.add_resource(icress.Timetable,'/api/icress/<faculty>/<course>/timetable')
 
+socketio.on_namespace(GroupChat('/group_chat'))
 
 if __name__ == "__main__":
     socketio.run(app,port=5000,host="0.0.0.0")
