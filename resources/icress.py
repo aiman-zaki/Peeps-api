@@ -9,16 +9,13 @@ from flask import Flask,jsonify,request,json
 from flask_restful import Resource, Api, abort
 
 class Faculty(Resource):
-    @jwt_required
     def get(self):
         return jsonify(fetchFaculties())
 
 class Course(Resource):
-    @jwt_required
     def get(self,faculty):
         return jsonify(fetchCourse(faculty))
 
 class Timetable(Resource):
-    @jwt_required
     def get(self,faculty,course):
         return jsonify(fetchTimeTable(faculty,course))

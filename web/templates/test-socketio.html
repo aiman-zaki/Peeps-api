@@ -1,16 +1,26 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.js"></script>
 
-<script>
+<script type="text/javascript" charset="utf-8">
     var token = "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE1NjMyODEwMjIsIm5iZiI6MTU2MzI4MTAyMiwianRpIjoiYjgxMTYyY2QtMjYyMS00N2JhLThlZDEtZjliMzE0MzE0Nzg3IiwiZXhwIjoxNTYzMjgxOTIyLCJpZGVudGl0eSI6ImFpbWFuMHpha2lAZ21haWwuY29tIiwiZnJlc2giOmZhbHNlLCJ0eXBlIjoiYWNjZXNzIn0.3Alg7D-hOzHUVri4pVmV8oPhXuMqaD0igJPyq7Ph5d0"
-    var socket = io('http://localhost:5000',{
+    var chat = io('http://192.168.1.159:5000/group_chat',{
         transportOptions:{
         polling: {
         extraHeaders: {
-          'Authorization': token
+    
             }
         } 
     }
     });
+    
+    var room = "test"
 
+    chat.on('connection',function() {
+        chat.emit('join', {room:room});
+    });
+    chat.emit('join', {room:room});
+    chat.emit('send_message',{room:room,message:"test"})
+    chat.on('send_message',function(msg){
+        console.log(msg)
+    });
 
-</script>as
+</script>ass

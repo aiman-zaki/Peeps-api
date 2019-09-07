@@ -13,7 +13,7 @@ from flask_restful import Resource, Api, abort
 from flask_mail import Mail, Message
 from werkzeug.security import generate_password_hash, check_password_hash
 import config
-from app import db , mail
+from main import db , mail
 
 class Register(Resource):
     def post(self):
@@ -27,13 +27,29 @@ class Register(Resource):
             if db.users.find_one({'email': email})['active'] == True:
                 abort(400, message='email is alread used.')
         else:
-            db.users.insert_one({'email': email, 'password':generate_password_hash(password), 'active':False})
+            #TODO: Mandatory Field
+            db.users.insert_one({
+                'email': email, 
+                'password':generate_password_hash(password), 
+                'active':False,
+                'profile':{
+                    'fname':'',
+                    'lname':'',
+                    'contactNo':'',
+                    'programmeCode':'',
+                },
+                'active_group':[],
+                'inbox':{
+                    
+                }
+                })
+
         access_token = create_access_token(identity=email)
         message = 'Hello\n Thank You for Registering to our Website, Here Your Activation Code \n <a href="http:127.0.0.1:5000/v1/confirm/'+access_token+'"/>'
         msg = Message(recipients=[email],
                         body=message,
                         subject='Acitivation Code')
-        mail.send(msg)
+        #mail.send(msg)
         return {'email':email}
 
 class Activate(Resource):
@@ -71,9 +87,8 @@ class Login(Resource):
             abort(400,message="Password is incorrect")
         if user['active'] is False:
             abort(400,message="Account is inactive")
-        user_id = str(user['_id'])
-        access_token = create_access_token(user_id)
-        refresh_token = create_refresh_token(user_id)
+        access_token = create_access_token(email)
+        refresh_token = create_refresh_token(email)
         data = {'access_token':access_token,'refresh_token':refresh_token}
         return jsonify(data)
 

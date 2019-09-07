@@ -14,7 +14,7 @@ from flask_restful import Resource, Api, abort
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from bson import json_util
-from app import db , app 
+from main import db , app 
 from bson.json_util import dumps, ObjectId
 
 def allowed_file(filename):
@@ -48,7 +48,7 @@ class Profile(Resource):
     def get(self):
         current_user = get_jwt_identity()
         user = db.users.find_one(
-            {'_id': ObjectId(current_user)},{'_id':1,'profile':1,'joined_group':1,'email':1}
+            {'email': current_user},{'_id':1,'profile':1,'active_group':1,'email':1}
         )
         return Response(
             json_util.dumps(user),
@@ -63,14 +63,43 @@ class Profile(Resource):
         db.users.update_one({'email':current_user},{'$set':{'profile':{'contact_no':contact_no,'programme_code':programme_code}}})
 
 
-class Inbox(Resource):
+class GroupInvitationInbox(Resource):
     @jwt_required
-    def get(self,filtered):
-        #TODO : FILTERED WORD NEED TO BE SANITIZED WITH INJECTION or Something
+    def get(self):
+        #TODO : BETTER QUERY
         current_user = get_jwt_identity()
-        inbox = db.users.find_one({'_id': ObjectId(current_user)},{filtered:1})
+        groupInvitationList = db.users.aggregate([
+            {'$unwind':'$inbox.group_invitation'},
+            {
+                '$lookup':{
+                    'from': 'groupworks',
+                    'localField': 'inbox.group_invitation.group_id',
+                    'foreignField': '_id',
+                    'as': 'g',
+
+                },
+                
+            },
+            {'$unwind':'$g'},
+            {
+                '$match':
+                    {'email':(current_user)}
+            },
+            {'$project':{
+                'invitation':'$inbox.group_invitation',
+                '_id':0,
+                'group._id':'$g._id',
+                'group.name':'$g.name',
+                'group.creator':'$g.creator',
+                'group.description':'$g.description',
+                'group.course':'$g.course',
+                'group.members':'$g.members',
+                
+                }},
+           
+        ])
         return Response(
-            json_util.dumps(inbox),
+            json_util.dumps(groupInvitationList),
             mimetype='application/json'
         )
     
@@ -80,18 +109,17 @@ class ReplyInvitationInbox(Resource):
         current_user = get_jwt_identity()
         answer = request.json['answer']
         group_id = request.json['group_id']
-        print(group_id)
         #TODO: BETTER QUERIES
         db.users.update_one({
             '$and':[
-                {'_id':ObjectId(current_user)},
+                {'email':(current_user)},
                 {'inbox.group_invitation.group_id':ObjectId(group_id)}
             ]
-        },{'$set':{'inbox.group_invitation.$.accept':answer}})
+        },{'$set':{'inbox.group_invitation.$.answer':answer}})
         #TODO : NEED TO LEARN OPTIMIZED QUERIES BRAH
-        if answer == "accept":
-            db.users.update_one({'_id':ObjectId(current_user)},{'$push':{'joined_group':group_id}},upsert=True)
-            db.groupworks.update_one({'_id':ObjectId(group_id)},{'$push':{'members':current_user}},upsert=True)
+        if answer == True:
+            db.users.update_one({'email':(current_user)},{'$push':{'active_group':group_id}},upsert=True)
+            db.groupworks.update_one({'email':ObjectId(group_id)},{'$push':{'members':current_user}},upsert=True)
     
 
         

@@ -1,14 +1,18 @@
 from flask_socketio import SocketIO, emit,ConnectionRefusedError, Namespace , join_room, leave_room , send , emit
-
-from app import app
-
+from flask import jsonify ,json
+from main import app
+from flask_jwt_extended import (
+    JWTManager, jwt_required, create_access_token,
+    get_jwt_identity,decode_token,create_refresh_token,jwt_refresh_token_required,
+    set_access_cookies,set_refresh_cookies,verify_jwt_in_request
+)
 socketio = SocketIO(app)
 
 class Chat(Namespace):
     def on_connect(self):
-        print('zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz')
+        pass
     def on_disconnect(self):
-        print('zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz')
+        pass
 
     def on_join(self,data):
         room = data['room']
@@ -17,24 +21,23 @@ class Chat(Namespace):
 
 class GroupChat(Namespace):
     def on_connect(self):
-        print('user Connected')
+        print("A User Connected to GroupChat")
     def on_disconnect(self):
-        print('A User Disconnected')
-    def on_test(self):
-        print('123123123')
+        print("User Disconnected")
     def on_join(self,data):
-        print("Joined")
+        token = data['token']
         room = data['room']
+        try: 
+            decode_token(token)
+        except:
+            raise ConnectionAbortedError('unAuthorized!!')
         join_room(room)
-        send('ZZZZZZZZZz has entered the room.', room=room)  
-    
+        send("A User is connected",room=room)
     def on_send_message(self,data):
-        print("on send message")
-        room = data['room']
-        message = data['message']
-        emit('send_message',message,room=room)
-
-
+        jsonencoded = json.dumps(data)
+        print(jsonencoded)
+        emit('receive_message',jsonencoded,room=data['room'])
+    
 
 
     

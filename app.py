@@ -12,19 +12,64 @@ from flask_cors import CORS
 from flask_restful import Resource, Api, abort
 from flask_mail import Mail, Message
 
-from flask_socketio import SocketIO, emit,ConnectionRefusedError,Namespace
+from flask_socketio import SocketIO, emit,ConnectionRefusedError
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.serving import run_simple
 import config
-from bson import ObjectId
-app = Flask(__name__,static_url_path='',static_folder='web/static',template_folder='web/templates')
-app.config.from_object('config')
-api = Api(app)
-CORS(app)
-mail = Mail(app)
-jwt = JWTManager(app)
-socketio = SocketIO(app)
-app.config['PROPAGATE_EXCEPTIONS'] = True
-client = MongoClient("mongodb://%s:%s@localhost:27017/" % ("admin","password"))
-db = client.api
 
+from main import app, jwt , api
+from resources import auth,icress,users,groupworks,assignments
+from socket_io import socketio , GroupChat
+
+
+@jwt.expired_token_loader
+def expired_token_callback(expired_token):
+    token_type = expired_token['type']
+    return jsonify({
+        'status':401,
+        'sub_status':42,
+        'msg': 'The {} token has expired'.format(token_type)
+    }),401
+
+@app.route('/')
+def index():
+    return render_template('index.html')
+@app.route('/client')
+def testsocketio():
+    return render_template('test-socketio.html')
+@app.errorhandler(404)
+def page_not_found(e):
+    return render_template('404.html'),404
+
+@socketio.on('connect')
+def connect():
+    print("Connected to /")
+
+api.add_resource(groupworks.GroupWork, '/api/groupworks/user')
+api.add_resource(groupworks.ActiveGroupWorkDetails, '/api/groupworks/detail')
+api.add_resource(groupworks.Stash, '/api/groupworks/stash')
+api.add_resource(auth.Register, '/api/auth/register')
+api.add_resource(auth.Activate, '/api/auth/activate')
+api.add_resource(auth.ActivateURL, '/api/auth/confirm/<token>')
+api.add_resource(auth.Login, '/api/auth/login')
+api.add_resource(auth.TokenRefresh, '/api/auth/refresh')
+api.add_resource(users.ReplyInvitationInbox, '/api/users/inbox/replyinvitation')
+api.add_resource(users.GroupInvitationInbox, '/api/users/inbox/groupinvitation')
+api.add_resource(users.Profile, '/api/users/profile')
+api.add_resource(users.ProfileImage, '/api/users/upload')
+
+api.add_resource(assignments.Assignments, '/api/assignments/')
+api.add_resource(assignments.Assignment, '/api/assignments/assignment')
+
+api.add_resource(assignments.AddTask,'/api/assignments/task/add')
+api.add_resource(assignments.UpdateTask, '/api/assignments/<assignment_id>/<task_id>/task')
+api.add_resource(assignments.UpdateTaskStatus,'/api/assignments/task/status')
+
+api.add_resource(icress.Faculty,'/api/icress/faculty')
+api.add_resource(icress.Course,'/api/icress/<faculty>/course')
+api.add_resource(icress.Timetable,'/api/icress/<faculty>/<course>/timetable')
+
+socketio.on_namespace(GroupChat('/group_chat'))
+
+if __name__ == "__main__":
+    socketio.run(app,port=5000,host="0.0.0.0")
