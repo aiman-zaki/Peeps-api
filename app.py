@@ -7,7 +7,7 @@ from flask_jwt_extended import (
 import re
 import datetime 
 import functools
-from flask import Flask,jsonify,request,json,render_template
+from flask import Flask,jsonify,request,json,render_template,send_file
 from flask_cors import CORS
 from flask_restful import Resource, Api, abort
 from flask_mail import Mail, Message
@@ -18,7 +18,7 @@ from werkzeug.serving import run_simple
 import config
 
 from main import app, jwt , api
-from resources import auth,icress,users,groupworks,assignments
+from resources import auth,users,groupworks,assignments
 from socket_io import socketio , GroupChat
 
 
@@ -37,6 +37,13 @@ def index():
 @app.route('/client')
 def testsocketio():
     return render_template('test-socketio.html')
+@app.route('/static/groupworks/<group_id>/profile/image')
+def group_profile(group_id): 
+    imagePath = app.root_path+app.config['UPLOAD_GROUPWORK_FOLDER']+group_id+'/profile.jpg'
+    print(imagePath)
+ 
+    return send_file(imagePath,mimetype='image/jpeg')
+
 @app.errorhandler(404)
 def page_not_found(e):
     return render_template('404.html'),404
@@ -45,14 +52,17 @@ def page_not_found(e):
 def connect():
     print("Connected to /")
 
-api.add_resource(groupworks.GroupWork, '/api/groupworks/user')
-api.add_resource(groupworks.ActiveGroupWorkDetails, '/api/groupworks/detail')
+api.add_resource(groupworks.GroupWork, '/api/groupworks/groupwork')
+api.add_resource(groupworks.GroupworkProfileImage, '/api/groupworks/profile/image')
+api.add_resource(groupworks.ActiveGroupWorkDetails, '/api/groupworks/groupwork/detail')
 api.add_resource(groupworks.Stash, '/api/groupworks/stash')
+api.add_resource(groupworks.Members, '/api/members/<group_id>')
 api.add_resource(auth.Register, '/api/auth/register')
 api.add_resource(auth.Activate, '/api/auth/activate')
 api.add_resource(auth.ActivateURL, '/api/auth/confirm/<token>')
 api.add_resource(auth.Login, '/api/auth/login')
 api.add_resource(auth.TokenRefresh, '/api/auth/refresh')
+
 api.add_resource(users.ReplyInvitationInbox, '/api/users/inbox/replyinvitation')
 api.add_resource(users.GroupInvitationInbox, '/api/users/inbox/groupinvitation')
 api.add_resource(users.Profile, '/api/users/profile')
@@ -65,10 +75,7 @@ api.add_resource(assignments.AddTask,'/api/assignments/task/add')
 api.add_resource(assignments.UpdateTask, '/api/assignments/<assignment_id>/<task_id>/task')
 api.add_resource(assignments.UpdateTaskStatus,'/api/assignments/task/status')
 
-api.add_resource(icress.Faculty,'/api/icress/faculty')
-api.add_resource(icress.Course,'/api/icress/<faculty>/course')
-api.add_resource(icress.Timetable,'/api/icress/<faculty>/<course>/timetable')
-
+api.add_resource(users.SearchUser,'/api/users/search')
 socketio.on_namespace(GroupChat('/group_chat'))
 
 if __name__ == "__main__":

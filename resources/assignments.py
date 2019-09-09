@@ -104,24 +104,10 @@ class Assignment(Resource):
                {'$replaceRoot': { 'newRoot': '$assignment' } }
              
             
-            ]
+            ],
+            
         )
-
-        #TODO : Top or bottm
-        assignment = db.assignments.find_one(
-            {
-                '$and':[
-                    {'group_id':ObjectId(group_id)},
-                    {'assignments._id':ObjectId(assignment_id)}
-                ],
-            },
-            {
-                '_id':0,
-                'assignments.$':1,
-            }
-          
-        )
-
+        
         json = json_util.dumps(data)
 
         return Response(
@@ -131,6 +117,7 @@ class Assignment(Resource):
     
     
     def post(self):
+        _id = ObjectId()
         current_user = get_jwt_identity()
         group_id = request.json['group_id']
         assignment = request.json['assignment']
@@ -138,7 +125,7 @@ class Assignment(Resource):
             {'group_id':ObjectId(group_id)},
             {'$push':{
                 'assignments': {
-                    '_id':ObjectId(),
+                    '_id': _id,
                     'title':assignment['title'],
                     'description':assignment['description'],
                     'leader':assignment['leader'],
@@ -147,6 +134,7 @@ class Assignment(Resource):
                 }
             }}
         )
+        db.tasks.insert_one({'assignment_id':_id})
 
 
 

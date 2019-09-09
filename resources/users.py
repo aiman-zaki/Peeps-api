@@ -119,7 +119,26 @@ class ReplyInvitationInbox(Resource):
         #TODO : NEED TO LEARN OPTIMIZED QUERIES BRAH
         if answer == True:
             db.users.update_one({'email':(current_user)},{'$push':{'active_group':group_id}},upsert=True)
-            db.groupworks.update_one({'email':ObjectId(group_id)},{'$push':{'members':current_user}},upsert=True)
+            db.groupworks.update_one({'_id':ObjectId(group_id)},{'$push':{'members':current_user}},upsert=True)
     
+
+class SearchUser(Resource):
+    def post(self):
+        search = request.json['search']
+        print(search)
+        data = db.users.find(
+            {
+                'email': {'$regex':search}
+            },
+            {
+                'email':1,
+                'profile':1
+            }
+        )
+
+        return Response(
+            json_util.dumps(data),
+            mimetype='application/json'
+        )
 
         
