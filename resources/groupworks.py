@@ -146,7 +146,11 @@ class Members(Resource):
                 '$project':{
                     '_id':0,
                     'email':'$users.email',
-                    'fname':'$users.profile.fname'
+                    'fname':'$users.profile.fname',
+                    'lname':'$users.profile.lname',
+                    'contactNo':'$users.profile.contactNo',
+                    'programmeCode':'$users.profile.programmeCode'
+
                 }
             }
         ])
