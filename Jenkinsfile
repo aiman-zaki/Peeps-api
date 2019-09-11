@@ -9,7 +9,7 @@ pipeline {
         stage ('docker build') {
             steps {
                 script {
-                    def customImage = docker.build('peeps:latest','-f deployment/nginx/Dockerfile')
+                    def customImage = docker.build('peeps:latest','-f deployment/nginx/Dockerfile .')
                 }
             }
         }
