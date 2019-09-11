@@ -10,7 +10,6 @@ pipeline {
             script {
                 steps {
                     def customImage docker.build('peeps:latest','-f deployment/nginx/Dockerfile')
-                    customImage.push()
                 }
             }
         }

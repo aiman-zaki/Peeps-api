@@ -1,0 +1,18 @@
+import os
+
+DEBUG = True
+MAIL_SERVER = 'smtp.gmail.com'
+MAIL_PORT = 587
+MAIL_USE_TLS = True
+MAIL_USE_SSL = False
+MAIL_USERNAME = ''
+MAIL_PASSWORD = ''
+MAIL_DEFAULT_SENDER = ''
+KEY = 'secret'
+ACTIVATION_EXPIRE_DAYS = 5
+TOKEN_EXPIRE_HOURS = 22
+DATABASE_USERNAME = ''
+DATABASE_PASSWORD = ''
+JWT_SECRET_KEY= 'imstraight'
+UPLOAD_FOLDER = '/web/public/users/'
+UPLOAD_GROUPWORK_FOLDER = '/web/public/groupworks/'
