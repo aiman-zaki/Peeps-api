@@ -8,7 +8,8 @@ pipeline {
         }
         stage ('docker build') {
             steps {
-                docker build -t peeps:latest -f deployment/nginx/Dockerfile .
+                docker.build('peeps:latest','-f deployment/nginx/Dockerfile')
+         
             }
         }
         
