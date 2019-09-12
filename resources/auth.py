@@ -17,6 +17,7 @@ from main import db , mail
 
 class Register(Resource):
     def post(self):
+        print(request.json)
         email = request.json['email']
         password = request.json['password']
         if not re.match(r'^[A-Za-z0-9\.\+_-]+@[A-Za-z0-9\._-]+\.[a-zA-Z]*$', email):

@@ -57,7 +57,7 @@ api.add_resource(groupworks.GroupworkProfileImage, '/api/groupworks/profile/imag
 api.add_resource(groupworks.ActiveGroupWorkDetails, '/api/groupworks/groupwork/detail')
 api.add_resource(groupworks.Stash, '/api/groupworks/stash')
 api.add_resource(groupworks.Members, '/api/groupworks/<group_id>/members')
-api.add_resource(auth.Register, '/api/auth/register')
+api.add_resource(auth.Register, '/api/users/user')
 api.add_resource(auth.Activate, '/api/auth/activate')
 api.add_resource(auth.ActivateURL, '/api/auth/confirm/<token>')
 api.add_resource(auth.Login, '/api/auth/login')
