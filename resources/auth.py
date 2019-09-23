@@ -86,8 +86,8 @@ class Login(Resource):
         user = db.users.find_one({'email':email})
         if not check_password_hash(user['password'],password):
             abort(400,message="Password is incorrect")
-        if user['active'] is False:
-            abort(400,message="Account is inactive")
+        #if user['active'] is False:
+        #    abort(400,message="Account is inactive")
         access_token = create_access_token(email)
         refresh_token = create_refresh_token(email)
         data = {'access_token':access_token,'refresh_token':refresh_token}

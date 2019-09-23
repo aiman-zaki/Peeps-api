@@ -52,8 +52,8 @@ class Assignments(Resource):
                     'title':'$assignments.title',
                     'description':'$assignments.description',
                     'leader': '$assignments.leader',
-                    'totalMarks': '$assignments.totalMarks',
-                    'scoredMarks' : '$assignments.scoredMarks',
+                    'total_marks': '$assignments.total_marks',
+                    'scored_marks' : '$assignments.scored_marks',
                     'status':'$assignments.status',
                     'tasks':'$tasks.tasks'
                 
@@ -121,6 +121,7 @@ class Assignment(Resource):
         current_user = get_jwt_identity()
         group_id = request.json['group_id']
         assignment = request.json['assignment']
+        print(assignment)
         db.assignments.update_one(
             {'group_id':ObjectId(group_id)},
             {'$push':{
@@ -129,10 +130,11 @@ class Assignment(Resource):
                     'title':assignment['title'],
                     'description':assignment['description'],
                     'leader':assignment['leader'],
-                    'totalMarks':assignment['totalMarks'],
+                    'total_marks':assignment['total_marks'],
   
                 }
-            }}
+            }},
+        upsert=True
         )
         db.tasks.insert_one({'assignment_id':_id})
 

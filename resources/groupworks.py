@@ -18,7 +18,8 @@ from werkzeug.datastructures import FileStorage
 from bson import json_util
 from main import db , app 
 from bson.json_util import dumps, ObjectId
-from PIL import Image
+import PIL.Image
+
 def allowed_file(filename):
     ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
 
@@ -42,7 +43,8 @@ class GroupworkProfileImage(Resource):
             if os.path.exists(path) is False:
                 os.mkdir(path)
             if fileExtension(imageFile.filename) is not 'jpg':
-                imageFile = imageFile.convert('RGB') 
+                imageFile = PIL.Image.open(imageFile) 
+                imageFile = imageFile.convert('RGB')
             imageFile.save(os.path.join(path,"profile.jpg"))
             return {"message":"Profile Picture Updated"},200
         return {"message":"Oops something is wrong"}

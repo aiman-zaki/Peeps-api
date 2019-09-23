@@ -37,11 +37,20 @@ def index():
 @app.route('/client')
 def testsocketio():
     return render_template('test-socketio.html')
+
+@app.route('/static/logo')
+def logo():
+    imagePath = app.root_path+"/web/static/images/logo.png"
+    return send_file(imagePath,mimetype='image/png')
+
+@app.route('/static/users/<user_id>/profile/image')
+def user_profile(user_id):
+    imagePath = app.root_path+app.config['UPLOAD_USERS_FOLDER']+user_id+'/profile.jpg'
+    return send_file(imagePath,mimetype='image/jpeg')
+
 @app.route('/static/groupworks/<group_id>/profile/image')
 def group_profile(group_id): 
-    imagePath = app.root_path+app.config['UPLOAD_GROUPWORK_FOLDER']+group_id+'/profile.jpg'
-    print(imagePath)
- 
+    imagePath = app.root_path+app.config['UPLOAD_GROUPWORK_FOLDER']+group_id+'/profile.jpg' 
     return send_file(imagePath,mimetype='image/jpeg')
 
 @app.errorhandler(404)
@@ -65,8 +74,8 @@ api.add_resource(auth.TokenRefresh, '/api/auth/refresh')
 
 api.add_resource(users.ReplyInvitationInbox, '/api/users/inbox/replyinvitation')
 api.add_resource(users.GroupInvitationInbox, '/api/users/inbox/groupinvitation')
-api.add_resource(users.Profile, '/api/users/profile')
-api.add_resource(users.ProfileImage, '/api/users/upload')
+api.add_resource(users.Profile, '/api/users/user/profile')
+api.add_resource(users.ProfileImage, '/api/users/user/upload')
 
 api.add_resource(assignments.Assignments, '/api/assignments/')
 api.add_resource(assignments.Assignment, '/api/assignments/assignment')

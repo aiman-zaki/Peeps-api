@@ -10,12 +10,14 @@ import os
 import functools
 from flask import request , jsonify, json , Response
 from flask_cors import CORS
-from flask_restful import Resource, Api, abort
+from flask_restful import Resource, Api, abort,reqparse
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
+from werkzeug.datastructures import FileStorage
 from bson import json_util
 from main import db , app 
 from bson.json_util import dumps, ObjectId
+import PIL.Image
 
 def allowed_file(filename):
     ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
@@ -27,14 +29,23 @@ def fileExtension(filename):
     return filename.rsplit('.',1)[1].lower()
 
 class ProfileImage(Resource):
+    @jwt_required
     def post(self):
-        userId = request.form['_id']
-        file = request.files['file']
-        if file and allowed_file(file.filename):
-            path = app.root_path+app.config['UPLOAD_FOLDER']+userId
+        current_user = get_jwt_identity()
+        parse = reqparse.RequestParser()
+        parse.add_argument('image',type=FileStorage, location='files')
+        parse.add_argument('user_id')
+        args = parse.parse_args()
+        imageFile = (args['image'])
+        user_id = args['user_id']
+        print(fileExtension(imageFile.filename))
+        if imageFile and allowed_file(imageFile.filename):
+            path = app.root_path+app.config['UPLOAD_USERS_FOLDER']+user_id
             if os.path.exists(path) is False:
                 os.mkdir(path)
-            file.save(os.path.join(path,"profile."+fileExtension(file.filename)))
+            #if fileExtension(imageFile.filename) is not 'jpg':
+                #imageFile = imageFile.convert('RGB') 
+            imageFile.save(os.path.join(path,"profile.jpg"))
             return {"message":"Profile Picture Updated"},200
         return {"message":"Oops something is wrong"}
     
@@ -56,11 +67,35 @@ class Profile(Resource):
         )
 
     @jwt_required
+    def put(self):
+        current_user = get_jwt_identity()
+        fname = request.json['fname']
+        lname = request.json['lname']
+        contact_no = request.json['contact_no']
+        programme_code = request.json['programme_code']
+        db.users.update_one(
+            {'email':current_user},
+            {'$set':
+                {'profile':{
+                    'fname':fname,
+                    'lname':lname,
+                    'contact_no':contact_no,
+                    'programme_code':programme_code,
+                }}
+            }
+        )
+
+    @jwt_required
     def post(self):
         current_user = get_jwt_identity()
         contact_no = request.json['contact_no']
         programme_code = request.json['programme_code']
-        db.users.update_one({'email':current_user},{'$set':{'profile':{'contact_no':contact_no,'programme_code':programme_code}}})
+        db.users.update_one(
+            {'email':current_user},
+            {'$set':
+                {'profile':{
+                    'contact_no':contact_no,
+                    'programme_code':programme_code}}})
 
 
 class GroupInvitationInbox(Resource):
