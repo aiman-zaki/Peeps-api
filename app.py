@@ -18,7 +18,7 @@ from werkzeug.serving import run_simple
 import config
 
 from main import app, jwt , api
-from resources import auth,users,groupworks,assignments
+from resources import auth,users,groupworks,assignments,inbox,stash
 from socket_io import socketio , GroupChat
 
 
@@ -43,16 +43,24 @@ def logo():
     imagePath = app.root_path+"/web/static/images/logo.png"
     return send_file(imagePath,mimetype='image/png')
 
+#TODO : Im lazy will implement better solution
 @app.route('/static/users/<user_id>/profile/image')
 def user_profile(user_id):
-    imagePath = app.root_path+app.config['UPLOAD_USERS_FOLDER']+user_id+'/profile.jpg'
-    return send_file(imagePath,mimetype='image/jpeg')
+    try :
+        imagePath = app.root_path+app.config['UPLOAD_USERS_FOLDER']+user_id+'/profile.jpg'
+        return send_file(imagePath,mimetype='image/jpeg')
+    except:
+        imagePath = app.root_path+"/web/static/images/logo.png"
+        return send_file(imagePath,mimetype='image/png')
 
 @app.route('/static/groupworks/<group_id>/profile/image')
 def group_profile(group_id): 
-    imagePath = app.root_path+app.config['UPLOAD_GROUPWORK_FOLDER']+group_id+'/profile.jpg' 
-    return send_file(imagePath,mimetype='image/jpeg')
-
+    try:
+        imagePath = app.root_path+app.config['UPLOAD_GROUPWORK_FOLDER']+group_id+'/profile.jpg' 
+        return send_file(imagePath,mimetype='image/jpeg')
+    except:
+        imagePath = app.root_path+"/web/static/images/logo.png"
+        return send_file(imagePath,mimetype='image/png')
 @app.errorhandler(404)
 def page_not_found(e):
     return render_template('404.html'),404
@@ -65,24 +73,31 @@ api.add_resource(groupworks.GroupWork, '/api/groupworks/groupwork')
 api.add_resource(groupworks.GroupworkProfileImage, '/api/groupworks/profile/image')
 api.add_resource(groupworks.ActiveGroupWorkDetails, '/api/groupworks/groupwork/detail')
 api.add_resource(groupworks.Stash, '/api/groupworks/stash')
+
 api.add_resource(groupworks.Members, '/api/groupworks/<group_id>/members')
+api.add_resource(groupworks.Roles, '/api/groupworks/<group_id>/roles')
+api.add_resource(stash.Notes,'/api/groupworks/<group_id>/notes')
+api.add_resource(assignments.Assignments, '/api/groupworks/<group_id>/assignments')
+api.add_resource(assignments.Assignment, '/api/groupworks/groupwork/assignment')
+
+api.add_resource(assignments.Tasks,'/api/groupworks/groupwork/<assignment_id>/tasks')
+api.add_resource(assignments.UpdateTask, '/api/groupworks/groupwork/<assignment_id>/<task_id>/task')
+api.add_resource(assignments.UpdateTaskStatus,'/api/groupworks/groupwork/<assignment_id>/task/status')
+
+
 api.add_resource(auth.Register, '/api/users/user')
 api.add_resource(auth.Activate, '/api/auth/activate')
 api.add_resource(auth.ActivateURL, '/api/auth/confirm/<token>')
 api.add_resource(auth.Login, '/api/auth/login')
 api.add_resource(auth.TokenRefresh, '/api/auth/refresh')
-
-api.add_resource(users.ReplyInvitationInbox, '/api/users/inbox/replyinvitation')
-api.add_resource(users.GroupInvitationInbox, '/api/users/inbox/groupinvitation')
+api.add_resource(groupworks.TestQuery, '/api/test')
+api.add_resource(inbox.ReplyInvitationInbox, '/api/users/inbox/replyinvitation')
+api.add_resource(inbox.GroupInvitationInbox, '/api/users/inbox/groupinvitation')
 api.add_resource(users.Profile, '/api/users/user/profile')
 api.add_resource(users.ProfileImage, '/api/users/user/upload')
 
-api.add_resource(assignments.Assignments, '/api/assignments/')
-api.add_resource(assignments.Assignment, '/api/assignments/assignment')
 
-api.add_resource(assignments.AddTask,'/api/assignments/task/add')
-api.add_resource(assignments.UpdateTask, '/api/assignments/<assignment_id>/<task_id>/task')
-api.add_resource(assignments.UpdateTaskStatus,'/api/assignments/task/status')
+
 
 api.add_resource(users.SearchUser,'/api/users/search')
 socketio.on_namespace(GroupChat('/group_chat'))

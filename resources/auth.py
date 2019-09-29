@@ -14,7 +14,7 @@ from flask_mail import Mail, Message
 from werkzeug.security import generate_password_hash, check_password_hash
 import config
 from main import db , mail
-
+from bson.json_util import dumps, ObjectId
 class Register(Resource):
     def post(self):
         print(request.json)
@@ -29,7 +29,7 @@ class Register(Resource):
                 abort(400, message='email is alread used.')
         else:
             #TODO: Mandatory Field
-            db.users.insert_one({
+            user_id = db.users.insert_one({
                 'email': email, 
                 'password':generate_password_hash(password), 
                 'active':False,
@@ -40,10 +40,12 @@ class Register(Resource):
                     'programmeCode':'',
                 },
                 'active_group':[],
-                'inbox':{
-                    
-                }
                 })
+            #Initial Inbox 
+            db.inbox.insert_one({
+                '_id': ObjectId(),
+                'user_id' :user_id.inserted_id
+            })
 
         access_token = create_access_token(identity=email)
         message = 'Hello\n Thank You for Registering to our Website, Here Your Activation Code \n <a href="http:127.0.0.1:5000/v1/confirm/'+access_token+'"/>'

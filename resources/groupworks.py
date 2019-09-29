@@ -29,6 +29,49 @@ def allowed_file(filename):
 def fileExtension(filename):
     return filename.rsplit('.',1)[1].lower()
 
+class TestQuery(Resource):
+    def get(self):
+
+        invitation_list = [] if request.json['members'] == None else request.json['members']
+
+        query = db.users.aggregate([
+            {
+                '$match':{
+                    'email': {
+                        '$in':invitation_list
+                    }
+                }
+            },
+            {
+                '$group':{
+                    '_id': None,
+                    'invitation_list':{
+                        '$push':'$_id'
+                    }
+                }
+            },
+            {
+                '$project':{
+                    'id':True,
+                    'invitation_list':True
+                }
+            },
+           
+
+            
+        ])
+
+        invitation_list = [data for data in query]
+
+        print(invitation_list[0]['invitation_list'])
+        
+
+        return Response(
+            json_util.dumps(invitation_list[0]),
+            mimetype='application/json'
+        )
+
+
 class GroupworkProfileImage(Resource):
     def post(self):
         parse = reqparse.RequestParser()
@@ -85,24 +128,69 @@ class GroupWork(Resource):
         description = request.json['description']
         course = request.json['course']
         invitation_list = [] if request.json['members'] == None else request.json['members']
-        try:
-            _id = db.groupworks.insert_one({
+        _id = db.groupworks.insert_one({
             'creator':current_user,
             'name':name,
             'description':description,
             'course':course,
             'invitation_list':invitation_list
-            })
-            #Push new groupwork to user active_group
-            db.users.update_one({'email':current_user},{'$push':{'active_group':_id.inserted_id}},upsert=True)
-            #Update the group invitation list
-            db.users.update_many({'email': {'$in': invitation_list}}, {'$push': {'inbox.group_invitation': {'inviter':current_user,'group_id':_id.inserted_id,'accept':False}}},upsert=True)
-            #Update groupwork members 
-            db.groupworks.update_one({'_id':_id.inserted_id},{'$push':{'members':current_user}})
-            #Iniital Assignment Collection
-            db.assignments.insert({'group_id':_id.inserted_id})
-        except:
-            abort(400,message='Something went wrong')
+        })
+        #Fetch all available users in invitationList
+        query = db.users.aggregate([
+        {
+            '$match':{
+                'email': {
+                    '$in':invitation_list
+                }
+            }
+        },
+        {
+            '$group':{
+                '_id': None,
+                'invitation_list':{
+                    '$push':'$_id'
+                }
+            }
+        },
+        {
+            '$project':{
+                'id':True,
+                'invitation_list':True
+            }
+        },])
+
+        invitation_list = [data for data in query]
+    
+        invitation_list = [] if not invitation_list  else invitation_list[0]['invitation_list']
+        print(invitation_list)
+        #Push new groupwork to creator active_group
+        db.users.update_one({'email':current_user},{'$push':{'active_group':_id.inserted_id}},upsert=True)
+        #Update the group invitation list
+        db.inbox.update_many(
+            {
+                'user_id': {'$in':invitation_list}
+            },
+            {
+                '$push': {
+                    'active_group_invitation':{
+                        'inviter':current_user,
+                        'group_id':_id.inserted_id,
+                        'answer':None,
+                    }
+                }
+            },
+            upsert=True
+        )
+        #Update groupwork members 
+        #role = 0 : admin
+        member = {
+            'email':current_user,
+            'role': 0
+        }
+
+        db.groupworks.update_one({'_id':_id.inserted_id},{'$push':{'members':member}})
+        #Iniital Assignment Collection
+    
         return Response(
             status=200
         )
@@ -132,37 +220,124 @@ class Stash(Resource):
 
 class Members(Resource):
     def get(self,group_id):
-
         members = db.groupworks.aggregate([
             {'$match':{'_id':ObjectId(group_id)}},
+            {'$unwind': '$members'},
             {
                 '$lookup':{
                     'from':'users',
-                    'localField': 'members',
+                    'localField': 'members.email',
                     'foreignField': 'email',
                     'as':'users'
                 }
             },
+
             {'$unwind':'$users'},
             {
-                '$project':{
-                    '_id':0,
-                    'email':'$users.email',
-                    'fname':'$users.profile.fname',
-                    'lname':'$users.profile.lname',
-                    'contactNo':'$users.profile.contactNo',
-                    'programmeCode':'$users.profile.programmeCode'
+            '$project':{
+                '_id': '$users._id',
+                'email':'$users.email',
+                'fname':'$users.profile.fname',
+                'lname':'$users.profile.lname',
+                'contactNo':'$users.profile.contactNo',
+                'programmeCode':'$users.profile.programmeCode',
+                'role':'$members.role'
+                
 
-                }
             }
+        }
         ])
-
-
-
-  
         return Response(
             json_util.dumps(members),
             mimetype='application/json'
         )
 
+    def put(self,group_id):
+        email = request.json['email']
+        db.groupworks.update_one(
+            {'_id':ObjectId(group_id),},
+            {'$pull':{
+                'members': {
+                    'email':email
+                }
+            }}
+        )
+        #Remove from users active group
+        db.users.update_one(
+            {'email':email},
+            {'$pull':{
+                'active_group': ObjectId(group_id)
+            }}
+        )
+        return Response(
+            {
+                json_util.dumps({'messages':{'Sucessfully Delete'}})
+            },
+            mimetype='application/json'
+        )
+
+    @jwt_required
+    def post(self,group_id):
+        #TODO Optimize Queries
+        current_user = get_jwt_identity()
+        email = request.json['email']
+        if db.groupworks.find({
+            '$or':[
+                {'$and':[
+                    {'_id':ObjectId(group_id)},
+                    {'invitation_list':email}
+                ]},
+                {'$and':[
+                    {'_id':ObjectId(group_id)},
+                    {'members.email':email}
+                ]}
+            ]
+        }).count() == 0 :
+            db.groupworks.update_one({
+                    '_id':ObjectId(group_id),
+                },
+                {'$push':{
+                    'invitation_list':email,
+                }}
+            )
+
+            db.users.update_one(
+                {'email':email},
+                {
+                    '$push': {
+                        'active_group_invitation':{
+                            'inviter':current_user,
+                            'group_id':ObjectId(group_id),
+                            'answer':None,
+                        }
+                    }
+                }
+            )
+        else:
+            abort(400,message='User currently a member or in invitation List')
+        
+
+
+class Roles(Resource):
+    def get(self,group_id):
+        pass
+
+    @jwt_required
+    def put(self,group_id):
+
+        member_email = request.json['email']
+        role = request.json['role']
+
+        db.groupworks.update_one(
+            {'$and':[
+                {'_id':ObjectId(group_id)},
+                {'members.email':member_email}
+            ]},
+            {'$set':{
+                'members.$.role':role
+
+            }}
+        )
+
+        
 

@@ -19,10 +19,7 @@ from bson.json_util import dumps, ObjectId
 
 class Assignments(Resource):
     #@jwt_required
-    def put(self): 
-        #current_user = get_jwt_identity()
-        group_id = request.json['group_id']
-        #Security measures i guess?
+    def get(self,group_id): 
         """valid = db.users.count_documents({
             '$and':[
                 {'email':current_user},
@@ -32,8 +29,8 @@ class Assignments(Resource):
         if valid is 0:
             return {'message':'You are not valid to view this'}
         data = db.assignments.find_one({'group_id':ObjectId(group_id)})
-        """
-        data = db.assignments.aggregate([
+      
+         data = db.assignments.aggregate([
             
             {'$match':{'group_id':ObjectId(group_id)}},
             {'$unwind':'$assignments'},
@@ -52,8 +49,10 @@ class Assignments(Resource):
                     'title':'$assignments.title',
                     'description':'$assignments.description',
                     'leader': '$assignments.leader',
-                    'total_marks': '$assignments.total_marks',
-                    'scored_marks' : '$assignments.scored_marks',
+                    'total_marks':'$assignments.total_marks',
+                    'scored_marks':'$assignments.scored_marks',
+                    'created_date':'$assignments.created_date',
+                    'due_date': '$assignments.due_date',
                     'status':'$assignments.status',
                     'tasks':'$tasks.tasks'
                 
@@ -61,9 +60,21 @@ class Assignments(Resource):
               
             
             }
-            
-        
         ])
+        
+        """
+
+        data = db.groupworks.find_one(
+            {
+                '_id':ObjectId(group_id)
+            },
+            {
+                '_id':False,
+                'assignments':True,
+            }
+        )
+        
+        
         return Response(
             json_util.dumps(data),
             mimetype='application/json'
@@ -121,9 +132,8 @@ class Assignment(Resource):
         current_user = get_jwt_identity()
         group_id = request.json['group_id']
         assignment = request.json['assignment']
-        print(assignment)
-        db.assignments.update_one(
-            {'group_id':ObjectId(group_id)},
+        db.groupworks.update_one(
+            {'_id':ObjectId(group_id)},
             {'$push':{
                 'assignments': {
                     '_id': _id,
@@ -131,6 +141,8 @@ class Assignment(Resource):
                     'description':assignment['description'],
                     'leader':assignment['leader'],
                     'total_marks':assignment['total_marks'],
+                    'created_date':assignment['created_date'],
+                    'due_date':assignment['due_date'],
   
                 }
             }},
@@ -139,12 +151,25 @@ class Assignment(Resource):
         db.tasks.insert_one({'assignment_id':_id})
 
 
+class Tasks(Resource):
 
-class AddTask(Resource):
     @jwt_required
-    def post(self):
+    def get(self,assignment_id):
+        print(assignment_id)
+        tasks = db.tasks.find_one(
+            {'assignment_id':ObjectId(assignment_id)},
+            {'_id':False,'tasks':True}
+        )
+
+        return Response(
+            json_util.dumps(tasks),
+            mimetype='application/json'
+        )
+
+
+    @jwt_required
+    def post(self,assignment_id):
         current_user = get_jwt_identity()
-        assignment_id = request.json['assignment_id']
         todo = request.json['todo']
         todo['_id'] = ObjectId()
         db.tasks.update_one(
@@ -162,6 +187,7 @@ class AddTask(Resource):
             }),
             mimetype='application/json'
         )
+
 
 class UpdateTask(Resource):
     def post(self):
@@ -189,8 +215,7 @@ class UpdateTask(Resource):
     
 #Used to update task status , delete from old array and push to new
 class UpdateTaskStatus(Resource):
-    def put(self):
-        assignment_id = request.json['assignment_id']
+    def put(self,assignment_id):
         tasks = request.json['tasks']
         for task in tasks:
             print(task)

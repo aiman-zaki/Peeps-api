@@ -53,7 +53,6 @@ class ProfileImage(Resource):
         pass
 
         
-
 class Profile(Resource):
     @jwt_required
     def get(self):
@@ -98,63 +97,7 @@ class Profile(Resource):
                     'programme_code':programme_code}}})
 
 
-class GroupInvitationInbox(Resource):
-    @jwt_required
-    def get(self):
-        #TODO : BETTER QUERY
-        current_user = get_jwt_identity()
-        groupInvitationList = db.users.aggregate([
-            {'$unwind':'$inbox.group_invitation'},
-            {
-                '$lookup':{
-                    'from': 'groupworks',
-                    'localField': 'inbox.group_invitation.group_id',
-                    'foreignField': '_id',
-                    'as': 'g',
 
-                },
-                
-            },
-            {'$unwind':'$g'},
-            {
-                '$match':
-                    {'email':(current_user)}
-            },
-            {'$project':{
-                'invitation':'$inbox.group_invitation',
-                '_id':0,
-                'group._id':'$g._id',
-                'group.name':'$g.name',
-                'group.creator':'$g.creator',
-                'group.description':'$g.description',
-                'group.course':'$g.course',
-                'group.members':'$g.members',
-                
-                }},
-           
-        ])
-        return Response(
-            json_util.dumps(groupInvitationList),
-            mimetype='application/json'
-        )
-    
-class ReplyInvitationInbox(Resource):
-    @jwt_required
-    def post(self):
-        current_user = get_jwt_identity()
-        answer = request.json['answer']
-        group_id = request.json['group_id']
-        #TODO: BETTER QUERIES
-        db.users.update_one({
-            '$and':[
-                {'email':(current_user)},
-                {'inbox.group_invitation.group_id':ObjectId(group_id)}
-            ]
-        },{'$set':{'inbox.group_invitation.$.answer':answer}})
-        #TODO : NEED TO LEARN OPTIMIZED QUERIES BRAH
-        if answer == True:
-            db.users.update_one({'email':(current_user)},{'$push':{'active_group':group_id}},upsert=True)
-            db.groupworks.update_one({'_id':ObjectId(group_id)},{'$push':{'members':current_user}},upsert=True)
     
 
 class SearchUser(Resource):
