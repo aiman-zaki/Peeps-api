@@ -97,6 +97,20 @@ class Profile(Resource):
                     'programme_code':programme_code}}})
 
 
+class Groupworks(Resource):
+    @jwt_required
+    def get(self):
+        current_user  = get_jwt_identity()
+        
+        active_group_list = db.users.find_one(
+            {'email':current_user},
+            {'_id':False,'active_group':True}
+        )
+        data = db.groupworks.find({'_id':{'$in':active_group_list['active_group']}})
+        return Response(
+            json_util.dumps(data),
+            mimetype='application/json'
+        )
 
     
 

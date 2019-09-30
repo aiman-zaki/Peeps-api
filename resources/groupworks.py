@@ -95,12 +95,12 @@ class GroupworkProfileImage(Resource):
     def get(self):
         pass
 
-class GroupWork(Resource):
+class Groupwork(Resource):
     @jwt_required
     def get(self):
         current_user = get_jwt_identity()
         data = db.users.find_one(
-            {'email': current_user},{'_id':0,'active_group':1}
+            {'email': current_user},{'_id':False,'active_group':True}
         )        
         groups = db.groupworks.find({'_id':{'$in': data['active_group']}})
         jsonList = []
@@ -119,6 +119,32 @@ class GroupWork(Resource):
                 ),
                 mimetype='application/json'
             )
+
+    @jwt_required
+    def put(self):
+        current_user = get_jwt_identity()
+        group_id = request.json['group_id']
+        supervisor = request.json['supervisor']
+        description = request.json['description']
+        course = request.json['course']
+
+        try:
+            db.groupworks.update_one(
+            {'_id':ObjectId(group_id)},
+            {
+                '$set':{
+                    'supervisor':supervisor,
+                    'description':description,
+                    'course':course,
+                }
+            }
+        )
+        except:
+
+            abort(400,message="Something Wrong")
+        
+
+        
 
 
     @jwt_required
