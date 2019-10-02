@@ -17,9 +17,9 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.serving import run_simple
 import config
 
-from main import app, jwt , api
-from resources import auth,users,groupworks,assignments,inbox,stash
-from socket_io import socketio , GroupChat
+from main import app, jwt , api , socketio
+from resources import auth,users,groupworks,assignments,inbox,stash,groupwork_socket
+
 
 
 @jwt.expired_token_loader
@@ -103,7 +103,8 @@ api.add_resource(users.ProfileImage, '/api/users/user/upload')
 
 
 api.add_resource(users.SearchUser,'/api/users/search')
-socketio.on_namespace(GroupChat('/group_chat'))
-
+socketio.on_namespace(groupwork_socket.GroupChat('/group_chat'))
+socketio.on_namespace(groupwork_socket.Timeline('/timeline'))
+ 
 if __name__ == "__main__":
     socketio.run(app,port=5000,host="0.0.0.0")

@@ -27,4 +27,4 @@ socketio = SocketIO(app)
 app.config['PROPAGATE_EXCEPTIONS'] = True
 client = MongoClient("mongodb://%s:%s@localhost:27017/" % ("admin","password"))
 db = client.api
-
+socketio = SocketIO(app)

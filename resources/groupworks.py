@@ -327,8 +327,14 @@ class Members(Resource):
                 }}
             )
 
-            db.users.update_one(
-                {'email':email},
+            _id = db.users.find_one({
+                'email':email
+            },{
+                '_id':True
+            })
+
+            db.inbox.update_one(
+                {'user_id':_id['_id']},
                 {
                     '$push': {
                         'active_group_invitation':{
