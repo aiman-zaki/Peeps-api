@@ -169,15 +169,15 @@ class Tasks(Resource):
 
     @jwt_required
     def post(self,assignment_id):
-        current_user = get_jwt_identity()
-        todo = request.json['todo']
-        todo['_id'] = ObjectId()
+        task = request.json['task']
+        print(assignment_id)
+        task['_id'] = ObjectId()
         db.tasks.update_one(
         {
             'assignment_id':ObjectId(assignment_id),
         },
         {
-            '$addToSet':{'tasks':todo}
+            '$addToSet':{'tasks':task}
             
         },upsert=True)
 
