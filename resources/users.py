@@ -112,6 +112,46 @@ class Groupworks(Resource):
             mimetype='application/json'
         )
 
+    @jwt_required
+    def put(self):
+        current_user = get_jwt_identity()
+        group_id = request.json["group_id"]
+        request_date = request.json["request_date"]
+
+        user_id = db.users.find_one(
+            {'email':current_user},
+            {'_id':True},
+        )
+        db.inbox.update_one(
+            {
+                'user_id':user_id['_id']
+            },
+            {
+            '$addToSet':{
+                'active_group_requests': {
+                        'group_id':ObjectId(group_id),
+                        'created_date':request_date,
+                    }
+                }
+            },
+            upsert=True
+        ),
+        db.groupworks.update_one(
+            {
+                '_id':ObjectId(group_id)
+            },
+            {
+                '$addToSet':{
+                    'requests':{
+                        'email':current_user,
+                        'created_date':request_date,
+                    }
+                }
+            },
+            upsert=True
+        )
+
+
     
 
 class SearchUser(Resource):
@@ -133,4 +173,56 @@ class SearchUser(Resource):
             mimetype='application/json'
         )
 
-        
+class UserAssignmentsAndTasks(Resource):
+    @jwt_required
+    def get(self): 
+        current_user = get_jwt_identity()
+        data = db.groupworks.aggregate([
+            {'$match':{
+                'members.email':current_user,
+            }},
+            {'$project':{
+                '_id':True,
+                'assignments':True,
+            }},
+            {'$unwind':'$assignments'},
+            {'$lookup':{
+                'from': 'tasks',
+                'localField': 'assignments._id',
+                'foreignField': 'assignment_id',
+                'as': 'tasks',
+                },
+            },
+            {'$unwind':'$tasks'},
+            {'$project':{
+                'assignments':True,
+                'tasks':'$tasks.tasks',
+            }},
+            {'$unwind':'$tasks'},
+            {'$match':{
+                'tasks.assign_to':current_user,
+            }},
+            {'$group':{
+                '_id':{
+                    '_id':'$_id',
+                    'assignment_id':'$assignments._id'
+                },
+                
+                'title':{'$first':'$assignments.title'},
+                'due_date': {'$first':'$assignments.due_date'},
+                'tasks':{'$push':'$tasks'}
+            }},
+            {'$project':{
+                '_id':False,
+                'group_id':'$_id._id',
+                'assignment_id':'$_id.assignment_id',
+                'assignment_title':'$title',
+                'assignment_due_data':'$due_data',
+                'tasks':'$tasks',
+            }}
+        ])
+
+        return Response(
+            json_util.dumps(data),
+            mimetype='application/json'
+        )
