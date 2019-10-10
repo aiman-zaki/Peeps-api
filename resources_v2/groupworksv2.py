@@ -21,6 +21,7 @@ from bson.json_util import dumps, ObjectId
 import PIL.Image
 
 
+
 def allowed_file(filename):
     ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
 
@@ -31,96 +32,11 @@ def allowed_file(filename):
 def fileExtension(filename):
     return filename.rsplit('.', 1)[1].lower()
 
+    
 
-class BaseGroupworks(Resource):
-    @jwt_required
-    def put(self):
-
-        search = request.json['search']
-
-        data = db.groupworks.find(
-            {
-                'course': {'$regex': search}
-            },
-        )
-
-        return Response(
-            json_util.dumps(data),
-            mimetype='application/json'
-        )
-
-
-class GroupworkProfileImage(Resource):
-    def post(self):
-        parse = reqparse.RequestParser()
-        parse.add_argument('image', type=FileStorage, location='files')
-        parse.add_argument('group_id')
-        args = parse.parse_args()
-        imageFile = (args['image'])
-        group_id = args['group_id']
-
-        if imageFile and allowed_file(imageFile.filename):
-            path = app.root_path+app.config['UPLOAD_GROUPWORK_FOLDER']+group_id
-            if os.path.exists(path) is False:
-                os.mkdir(path)
-            if fileExtension(imageFile.filename) is not 'jpg':
-                imageFile = PIL.Image.open(imageFile)
-                imageFile = imageFile.convert('RGB')
-            imageFile.save(os.path.join(path, "profile.jpg"))
-            return {"message": "Profile Picture Updated"}, 200
-        return {"message": "Oops something is wrong"}
-
+class Groupworks(Resource):
     def get(self):
         pass
-
-
-class Groupwork(Resource):
-    @jwt_required
-    def get(self):
-        current_user = get_jwt_identity()
-        data = db.users.find_one(
-            {'email': current_user}, {'_id': False, 'active_group': True}
-        )
-        groups = db.groupworks.find({'_id': {'$in': data['active_group']}})
-        jsonList = []
-        if groups is None:
-            for group in groups:
-                jsonList.append(group)
-            return Response(
-                json_util.dumps(jsonList),
-                mimetype='application/json',
-
-            )
-        else:
-            return Response(
-                (
-                    {"message": "No Data Recorded"}
-                ),
-                mimetype='application/json'
-            )
-
-    @jwt_required
-    def put(self):
-        current_user = get_jwt_identity()
-        group_id = request.json['group_id']
-        supervisor = request.json['supervisor']
-        description = request.json['description']
-        course = request.json['course']
-
-        try:
-            db.groupworks.update_one(
-                {'_id': ObjectId(group_id)},
-                {
-                    '$set': {
-                        'supervisor': supervisor,
-                        'description': description,
-                        'course': course,
-                    }
-                }
-            )
-        except:
-
-            abort(400, message="Something Wrong")
 
     @jwt_required
     def post(self):
@@ -192,33 +108,36 @@ class Groupwork(Resource):
                                  '$push': {'members': member}})
         # Iniital Assignment Collection
 
+ 
+class Groupwork(Resource):
+
+    def get(self,group_id):
+        group = db.groupworks.find_one(
+            {'_id':ObjectId(group_id)}
+        )
+
         return Response(
-            status=200
+            json_util.dumps(group)
         )
 
 
-class ActiveGroupWorkDetails(Resource):
-    def put(self):
-        #current_user = get_jwt_identity()
-        active_group_list = request.json['active_group']
-        active_group_list = [ObjectId(data['$oid'])
-                             for data in active_group_list]
-        data = db.groupworks.find({'_id': {'$in': active_group_list}})
+class GroupworkProfileImage(Resource):
 
-        return Response(
-            json_util.dumps(data),
-            mimetype='application/json'
-        )
-
-
-class Stash(Resource):
-    def put(self):
-        group_id = ObjectId(request.json['group_id'])
-        stash = db.groupworks.find({'_id': group_id}, {'stash': 1})
-        return Response(
-            json_util.dumps(stash),
-            mimetype='application/json'
-        )
+    def post(self,group_id):
+        parse = reqparse.RequestParser()
+        parse.add_argument('image', type=FileStorage, location='files')
+        args = parse.parse_args()
+        imageFile = (args['image'])
+        if imageFile and allowed_file(imageFile.filename):
+            path = app.root_path+app.config['UPLOAD_GROUPWORK_FOLDER']+group_id
+            if os.path.exists(path) is False:
+                os.mkdir(path)
+            if fileExtension(imageFile.filename) is not 'jpg':
+                imageFile = PIL.Image.open(imageFile)
+                imageFile = imageFile.convert('RGB')
+            imageFile.save(os.path.join(path, "profile.jpg"))
+            return {"message": "Profile Picture Updated"}, 200
+        return {"message": "Oops something is wrong"}
 
 
 class Members(Resource):

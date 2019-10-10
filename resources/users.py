@@ -58,7 +58,7 @@ class Profile(Resource):
     def get(self):
         current_user = get_jwt_identity()
         user = db.users.find_one(
-            {'email': current_user},{'_id':1,'profile':1,'active_group':1,'email':1}
+            {'email': current_user},{'_id':True,'profile':True,'active_group':True,'email':True,'role':True}
         )
         return Response(
             json_util.dumps(user),
@@ -97,7 +97,7 @@ class Profile(Resource):
                     'programme_code':programme_code}}})
 
 
-class Groupworks(Resource):
+class ActiveGroupworks(Resource):
     @jwt_required
     def get(self):
         current_user  = get_jwt_identity()
@@ -183,6 +183,7 @@ class UserAssignmentsAndTasks(Resource):
             }},
             {'$project':{
                 '_id':True,
+                'name':True,
                 'assignments':True,
             }},
             {'$unwind':'$assignments'},
@@ -195,25 +196,32 @@ class UserAssignmentsAndTasks(Resource):
             },
             {'$unwind':'$tasks'},
             {'$project':{
+                'name':True,
                 'assignments':True,
                 'tasks':'$tasks.tasks',
             }},
             {'$unwind':'$tasks'},
             {'$match':{
-                'tasks.assign_to':current_user,
+                '$and':[
+                    {'tasks.assign_to':current_user},
+                    {'tasks.status':{
+                        '$in':[0,1]
+                    }}
+                ]
             }},
             {'$group':{
                 '_id':{
                     '_id':'$_id',
                     'assignment_id':'$assignments._id'
                 },
-                
+                'group_name':{'$first':'$name'},
                 'title':{'$first':'$assignments.title'},
                 'due_date': {'$first':'$assignments.due_date'},
                 'tasks':{'$push':'$tasks'}
             }},
             {'$project':{
                 '_id':False,
+                'group_name':'$group_name',
                 'group_id':'$_id._id',
                 'assignment_id':'$_id.assignment_id',
                 'assignment_title':'$title',
@@ -226,3 +234,18 @@ class UserAssignmentsAndTasks(Resource):
             json_util.dumps(data),
             mimetype='application/json'
         )
+
+class Role(Resource):
+    @jwt_required
+    def put(self):
+        current_user = get_jwt_identity()
+        role = request.json['role']
+        
+        db.users.update_one(
+            {'email':current_user},
+            {'$set':{
+                'role':role,
+            }}
+        )
+
+        

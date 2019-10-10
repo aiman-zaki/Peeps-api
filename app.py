@@ -18,8 +18,8 @@ from werkzeug.serving import run_simple
 import config
 
 from main import app, jwt , api , socketio
-from resources import auth,users,groupworks,assignments,inbox,stash,groupwork_socket
-
+from resources import auth,users,groupworks,assignments,inbox,stash,groupwork_socket,forum,timeline
+from resources_v2 import groupworksv2 , assignmentsv2
 
 
 @jwt.expired_token_loader
@@ -68,43 +68,58 @@ def page_not_found(e):
 @socketio.on('connect')
 def connect():
     print("Connected to /")
+    
 
-api.add_resource(groupworks.Groupwork, '/api/groupworks/groupwork')
-api.add_resource(groupworks.GroupworkProfileImage, '/api/groupworks/profile/image')
+#Peeps API
 
-api.add_resource(groupworks.Stash, '/api/groupworks/stash')
-
-api.add_resource(groupworks.Members, '/api/groupworks/<group_id>/members')
-api.add_resource(groupworks.Roles, '/api/groupworks/<group_id>/roles')
-api.add_resource(stash.Notes,'/api/groupworks/<group_id>/notes')
-api.add_resource(assignments.Assignments, '/api/groupworks/<group_id>/assignments')
-api.add_resource(assignments.Assignment, '/api/groupworks/groupwork/assignment')
-
-api.add_resource(assignments.Tasks,'/api/groupworks/groupwork/<assignment_id>/tasks')
-api.add_resource(assignments.UpdateTask, '/api/groupworks/groupwork/<assignment_id>/<task_id>/task')
-api.add_resource(assignments.UpdateTaskStatus,'/api/groupworks/groupwork/<assignment_id>/task/status')
-
-
-api.add_resource(auth.Register, '/api/users/user')
-api.add_resource(users.Groupworks, '/api/users/user/groupworks')
-api.add_resource(groupworks.ActiveGroupWorkDetails, '/api/groupworks/groupwork/detail')
+#Authtentication API
 
 api.add_resource(auth.Activate, '/api/auth/activate')
 api.add_resource(auth.ActivateURL, '/api/auth/confirm/<token>')
 api.add_resource(auth.Login, '/api/auth/login')
 api.add_resource(auth.TokenRefresh, '/api/auth/refresh')
-api.add_resource(groupworks.TestQuery, '/api/test')
-api.add_resource(inbox.ReplyInvitationInbox, '/api/users/inbox/replyinvitation')
-api.add_resource(inbox.GroupInvitationInbox, '/api/users/inbox/groupinvitation')
-api.add_resource(users.Profile, '/api/users/user/profile')
-api.add_resource(users.ProfileImage, '/api/users/user/upload')
 
-
-
-
+#Users API
 api.add_resource(users.SearchUser,'/api/users/search')
+api.add_resource(auth.Register, '/api/users')
+#User API
+api.add_resource(inbox.ReplyInvitationInbox, '/api/user/inbox/reply_invitation')
+api.add_resource(inbox.GroupInvitationInbox, '/api/user/inbox/group_invitation')
+api.add_resource(users.Profile, '/api/user/profile')
+api.add_resource(users.ProfileImage, '/api/user/upload')
+api.add_resource(users.UserAssignmentsAndTasks,'/api/user/tasks')
+api.add_resource(users.Role,'/api/user/role')
+api.add_resource(users.ActiveGroupworks, '/api/user/groupworks')
+
+#Groupworks API
+api.add_resource(groupworksv2.Groupworks, '/api/groupworks')
+
+#Requires Group Id 
+api.add_resource(groupworksv2.GroupworkProfileImage, '/api/groupworks/<group_id>/picture')
+api.add_resource(groupworksv2.Groupwork, '/api/groupworks/<group_id>')
+api.add_resource(groupworks.Members, '/api/groupworks/<group_id>/members')
+api.add_resource(groupworks.Roles, '/api/groupworks/<group_id>/roles')
+api.add_resource(stash.Notes,'/api/groupworks/<group_id>/notes')
+api.add_resource(groupworks.Requests,'/api/groupworks/<group_id>/requests')
+api.add_resource(assignments.Assignments, '/api/groupworks/<group_id>/assignments')
+api.add_resource(timeline.Timeline,'/api/groupworks/<group_id>/timelines')
+
+#Requires Assignment Id
+api.add_resource(assignments.Tasks,'/api/groupworks/groupwork/<assignment_id>/tasks')
+
+#Requires AssignmentId and Task Id
+api.add_resource(assignmentsv2.Task, '/api/groupworks/groupwork/<assignment_id>/<task_id>/task')
+api.add_resource(assignmentsv2.TaskStatus,'/api/groupworks/groupwork/<assignment_id>/task/status')
+
+#Forum API
+api.add_resource(forum.Forum, '/api/forums/<course>')
+api.add_resource(forum.Discussion ,'/api/forums/<course>/<discussion>')
+
+
+#Socket-IO Namespace
 socketio.on_namespace(groupwork_socket.GroupChat('/group_chat'))
 socketio.on_namespace(groupwork_socket.Timeline('/timeline'))
+socketio.on_namespace(groupwork_socket.Collaborate('/collaborate'))
  
 if __name__ == "__main__":
     socketio.run(app,port=5000,host="0.0.0.0")

@@ -39,6 +39,7 @@ class Register(Resource):
                     'contactNo':'',
                     'programmeCode':'',
                 },
+                'role':2,
                 'active_group':[],
                 })
             #Initial Inbox 
@@ -46,6 +47,9 @@ class Register(Resource):
                 '_id': ObjectId(),
                 'user_id' :user_id.inserted_id
             })
+
+
+
 
         access_token = create_access_token(identity=email)
         message = 'Hello\n Thank You for Registering to our Website, Here Your Activation Code \n <a href="http:127.0.0.1:5000/v1/confirm/'+access_token+'"/>'
