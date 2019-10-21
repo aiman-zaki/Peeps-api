@@ -66,7 +66,6 @@ class Timeline(Namespace):
 
     def on_send_data(self, data):
         jsonencoded = json.dumps(data)
-
         emit('stream_data', jsonencoded, room=data['room'])
 
 

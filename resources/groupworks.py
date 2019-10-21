@@ -299,7 +299,7 @@ class Members(Resource):
             db.groupworks.update_one({
                 '_id': ObjectId(group_id),
             },
-                {'$push': {
+                {'$addToSet': {
                     'invitation_list': email,
                 }}
             )

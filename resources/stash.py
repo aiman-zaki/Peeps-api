@@ -20,6 +20,33 @@ from main import db , app
 from bson.json_util import dumps, ObjectId
 import PIL.Image
 
+class References(Resource):
+    def get(self,group_id):
+        references = db.stash.find_one(
+            {'group_id':ObjectId(group_id)},
+            {
+                '_id':False,
+                'references':True,
+            }
+        )
+        return Response(
+            json_util.dumps(references['references']),
+            mimetype='application/json'
+        )
+    
+    def post(self,group_id):
+        reference = request.json
+        reference['_id'] = ObjectId()
+        reference.pop('room',None)
+        db.stash.update_one(
+            {'group_id':ObjectId(group_id)},
+            {'$addToSet':{
+                'references':reference
+            }}
+        ,upsert=True
+        )
+
+        
 
 class Notes(Resource):
     

@@ -23,14 +23,30 @@ import PIL.Image
 
 class Timeline(Resource):
     def get(self,group_id):
-        pass
+        data = db.timelines.find_one(
+            {'group_id':ObjectId(group_id)},
+            {'_id:':False,'contributions':{'$slice':-10}},
+            
+        )
+        if 'contributions' not in data:
+            print("test")
+            data['contributions'] = []
+        return Response(
+            json_util.dumps(data['contributions']),
+            mimetype="application/json"
+        )
 
     def post(self,group_id):
-        data = json.request
-        db.timeline.update_one(
+        data = request.json
+        data.pop('room',None)
+        db.timelines.update_one(
             {'group_id':ObjectId(group_id)},
             {'$addToSet': {
                 'contributions': data
             }}
             ,upsert=True
         )
+
+class TimelineCount(Resource):
+    def get(self,group_id,count):
+        pass

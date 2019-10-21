@@ -55,6 +55,9 @@ class Discussion(Resource):
             {'course':course,'discussions._id':ObjectId(discussion)},
             {'_id':False,'discussions.$':True}
         )
+        if 'discussions' not in discussion:
+            discussion['discussions'] = []
+            
         return Response(
             json_util.dumps(discussion['discussions'][0]),
             mimetype='application/json'

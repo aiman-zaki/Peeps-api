@@ -114,8 +114,33 @@ class Tasks(Resource):
 
 
 class Task(Resource):
-    def post(self):
-        pass
+    def put(self,assignment_id,task_id):
+        
+        task = request.json
+        
+        db.tasks.update_one(
+        {
+            'assignment_id':ObjectId(assignment_id),
+            'tasks._id':ObjectId(task_id)
+        },
+        {
+            '$set':{
+                'tasks.$':{
+                    '_id':ObjectId(task['_id']),
+                    'creator':task['creator'],
+                    'assign_to':task['assign_to'],
+                    'task':task['task'],
+                    'description':task['description'],
+                    'created_date':task['created_date'],
+                    'due_date':task['due_date'],
+                    'assign_date':task['assign_date'],
+                    'last_updated':task['last_updated'],
+                    'priority':task['priority'],
+                    'status':task['status'],
+                    'seq':task['seq']
+                }
+            }
+        })
 
     def delete(self, assignment_id, task_id):
         try:
@@ -140,7 +165,7 @@ class Task(Resource):
 # Used to update task status , delete from old array and push to new
 
 class TaskStatus(Resource):
-    def put(self, assignment_id):
+    def put(self,assignment_id):
         tasks = request.json['tasks']
         for task in tasks:
             print(task)

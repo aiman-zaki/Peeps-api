@@ -67,7 +67,7 @@ class GroupInvitationInbox(Resource):
     
 class ReplyInvitationInbox(Resource):
     @jwt_required
-    def post(self):
+    def put(self):
         current_user = get_jwt_identity()
         user_id = db.users.find_one(
             {'email':current_user},

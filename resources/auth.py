@@ -17,7 +17,6 @@ from main import db , mail
 from bson.json_util import dumps, ObjectId
 class Register(Resource):
     def post(self):
-        print(request.json)
         email = request.json['email']
         password = request.json['password']
         if not re.match(r'^[A-Za-z0-9\.\+_-]+@[A-Za-z0-9\._-]+\.[a-zA-Z]*$', email):
@@ -76,7 +75,6 @@ class ActivateURL(Resource):
             decoded = decode_token(activation_code)
         except:
            return {'message':'Something went wrong'},500
-        print(decoded)
         current_user = get_jwt_identity()
         db.users.update({'email':current_user}, {'$set':{'active':True}})
 
@@ -85,7 +83,6 @@ class Login(Resource):
     def post(self):
         email = request.json['email']
         password = request.json['password']
-        print(email)
         if db.users.find({'email':email}).count() == 0:
             abort(400,message = 'User is not found')
 

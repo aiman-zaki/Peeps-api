@@ -122,40 +122,48 @@ class ActiveGroupworks(Resource):
             {'email':current_user},
             {'_id':True},
         )
-        db.inbox.update_one(
+
+        if db.groupworks.find(
             {
-                'user_id':user_id['_id']
-            },
-            {
-            '$addToSet':{
-                'active_group_requests': {
-                        'group_id':ObjectId(group_id),
-                        'created_date':request_date,
-                    }
-                }
-            },
-            upsert=True
-        ),
-        db.groupworks.update_one(
-            {
-                '_id':ObjectId(group_id)
-            },
-            {
+                '_id':ObjectId(group_id),
+                'members.email':current_user    
+            }
+        ).count() == 0:
+
+            db.inbox.update_one(
+                {
+                    'user_id':user_id['_id']
+                },
+                {
                 '$addToSet':{
-                    'requests':{
-                        'email':current_user,
-                        'created_date':request_date,
+                    'active_group_requests': {
+                            'group_id':ObjectId(group_id),
+                            'created_date':request_date,
+                        }
                     }
-                }
-            },
-            upsert=True
-        )
+                },
+                upsert=True
+            ),
+            db.groupworks.update_one(
+                {
+                    '_id':ObjectId(group_id)
+                },
+                {
+                    '$addToSet':{
+                        'requests':{
+                            'email':current_user,
+                            'created_date':request_date,
+                        }
+                    }
+                },
+                upsert=True
+            )
 
 
     
 
 class SearchUser(Resource):
-    def post(self):
+    def put(self):
         search = request.json['search']
         print(search)
         data = db.users.find(
@@ -167,6 +175,31 @@ class SearchUser(Resource):
                 'profile':1
             }
         )
+
+        return Response(
+            json_util.dumps(data),
+            mimetype='application/json'
+        )
+
+
+class UserAssignments(Resource):
+    @jwt_required
+    def get(self):
+        current_user = get_jwt_identity()
+        data = db.groupworks.aggregate([
+            {'$match':{
+                'members.email':current_user,
+            }},
+            {
+                '$project':{
+                    '_id':True,
+                    'name':True,
+                    'assignments':{
+                        '$ifNull':['$assignments',[]]
+                    }
+                }
+            }
+        ])
 
         return Response(
             json_util.dumps(data),

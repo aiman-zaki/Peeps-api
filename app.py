@@ -78,10 +78,10 @@ api.add_resource(auth.Activate, '/api/auth/activate')
 api.add_resource(auth.ActivateURL, '/api/auth/confirm/<token>')
 api.add_resource(auth.Login, '/api/auth/login')
 api.add_resource(auth.TokenRefresh, '/api/auth/refresh')
-
+api.add_resource(auth.Register, '/api/auth/register')
 #Users API
 api.add_resource(users.SearchUser,'/api/users/search')
-api.add_resource(auth.Register, '/api/users')
+
 #User API
 api.add_resource(inbox.ReplyInvitationInbox, '/api/user/inbox/reply_invitation')
 api.add_resource(inbox.GroupInvitationInbox, '/api/user/inbox/group_invitation')
@@ -90,26 +90,28 @@ api.add_resource(users.ProfileImage, '/api/user/upload')
 api.add_resource(users.UserAssignmentsAndTasks,'/api/user/tasks')
 api.add_resource(users.Role,'/api/user/role')
 api.add_resource(users.ActiveGroupworks, '/api/user/groupworks')
-
+api.add_resource(users.UserAssignments,'/api/user/assignments')
 #Groupworks API
 api.add_resource(groupworksv2.Groupworks, '/api/groupworks')
-
+api.add_resource(groupworksv2.GroupworksSearch, '/api/groupworks/search')
 #Requires Group Id 
 api.add_resource(groupworksv2.GroupworkProfileImage, '/api/groupworks/<group_id>/picture')
 api.add_resource(groupworksv2.Groupwork, '/api/groupworks/<group_id>')
-api.add_resource(groupworks.Members, '/api/groupworks/<group_id>/members')
-api.add_resource(groupworks.Roles, '/api/groupworks/<group_id>/roles')
+api.add_resource(groupworksv2.Members, '/api/groupworks/<group_id>/members')
+api.add_resource(groupworksv2.Roles, '/api/groupworks/<group_id>/roles')
 api.add_resource(stash.Notes,'/api/groupworks/<group_id>/notes')
-api.add_resource(groupworks.Requests,'/api/groupworks/<group_id>/requests')
+api.add_resource(groupworksv2.Requests,'/api/groupworks/<group_id>/requests')
 api.add_resource(assignments.Assignments, '/api/groupworks/<group_id>/assignments')
+api.add_resource(assignments.AssignmentDelete, '/api/groupworks/<group_id>/assignments/delete')
 api.add_resource(timeline.Timeline,'/api/groupworks/<group_id>/timelines')
+api.add_resource(stash.References,'/api/groupworks/<group_id>/references')
 
-#Requires Assignment Id
-api.add_resource(assignments.Tasks,'/api/groupworks/groupwork/<assignment_id>/tasks')
+#Requires GroupId and Assignment Id 
+api.add_resource(assignments.Assignment, '/api/groupworks/<assignment_id>')
+api.add_resource(assignments.Tasks,'/api/groupworks/<assignment_id>/tasks')
+api.add_resource(assignments.TaskStatus,'/api/groupworks/<assignment_id>/tasks/status')
+api.add_resource(assignments.Task, '/api/groupworks/<assignment_id>/<task_id>/task')
 
-#Requires AssignmentId and Task Id
-api.add_resource(assignmentsv2.Task, '/api/groupworks/groupwork/<assignment_id>/<task_id>/task')
-api.add_resource(assignmentsv2.TaskStatus,'/api/groupworks/groupwork/<assignment_id>/task/status')
 
 #Forum API
 api.add_resource(forum.Forum, '/api/forums/<course>')

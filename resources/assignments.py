@@ -21,50 +21,6 @@ from bson.json_util import dumps, ObjectId
 class Assignments(Resource):
     # @jwt_required
     def get(self, group_id):
-        """valid = db.users.count_documents({
-            '$and':[
-                {'email':current_user},
-                {'active_group': group_id}
-            ]
-        })
-        if valid is 0:
-            return {'message':'You are not valid to view this'}
-        data = db.assignments.find_one({'group_id':ObjectId(group_id)})
-
-         data = db.assignments.aggregate([
-
-            {'$match':{'group_id':ObjectId(group_id)}},
-            {'$unwind':'$assignments'},
-            {
-                '$lookup':{
-                    'from':'tasks',
-                    'localField':'assignments._id',
-                    'foreignField':'assignment_id',
-                    'as':'tasks',
-                }
-            },
-            {'$unwind':'$tasks'},
-            {'$project':
-                {
-                    '_id':'$assignments._id',
-                    'title':'$assignments.title',
-                    'description':'$assignments.description',
-                    'leader': '$assignments.leader',
-                    'total_marks':'$assignments.total_marks',
-                    'scored_marks':'$assignments.scored_marks',
-                    'created_date':'$assignments.created_date',
-                    'due_date': '$assignments.due_date',
-                    'status':'$assignments.status',
-                    'tasks':'$tasks.tasks'
-
-                },
-
-
-            }
-        ])
-
-        """
-
         data = db.groupworks.find_one(
             {
                 '_id': ObjectId(group_id)
@@ -75,14 +31,53 @@ class Assignments(Resource):
             }
         )
 
+        if 'assignments' not in data:
+            data = {}
+            data['assignments'] = []
+
+            
+
         return Response(
-            json_util.dumps(data),
+            json_util.dumps(data['assignments']),
             mimetype='application/json'
         )
+
+    def post(self,group_id):
+        _id = ObjectId()
+        assignment = request.json
+        db.groupworks.update_one(
+            {'_id': ObjectId(group_id)},
+            {'$push': {
+                'assignments': {
+                    '_id': _id,
+                    'title': assignment['title'],
+                    'description': assignment['description'],
+                    'leader': assignment['leader'],
+                    'total_marks': assignment['total_marks'],
+                    'created_date': assignment['created_date'],
+                    'due_date': assignment['due_date'],
+
+                }
+            }},
+            upsert=True
+        )
+        db.tasks.insert_one({'assignment_id': _id})
         
 
 
 class Assignment(Resource):
+
+    def get(self,assignment_id):
+        
+        data = db.assignments.find_one(
+            {'_id':ObjectId(assignment_id)},
+        )
+
+        return Response(
+            json_util.dumps(data),
+            mimetype='application/json'
+        )
+
     def put(self):
         #current_user = get_jwt_identity()
         group_id = request.json['group_id']
@@ -123,32 +118,22 @@ class Assignment(Resource):
             mimetype='application/json'
         )
 
-    def post(self):
-        _id = ObjectId()
-        current_user = get_jwt_identity()
-        group_id = request.json['group_id']
-        assignment = request.json['assignment']
-        db.groupworks.update_one(
-            {'_id': ObjectId(group_id)},
-            {'$push': {
-                'assignments': {
-                    '_id': _id,
-                    'title': assignment['title'],
-                    'description': assignment['description'],
-                    'leader': assignment['leader'],
-                    'total_marks': assignment['total_marks'],
-                    'created_date': assignment['created_date'],
-                    'due_date': assignment['due_date'],
 
+class AssignmentDelete(Resource):
+    def put(self,group_id):
+        assingment_id = request.json['assignment_id']
+        db.groupworks.update_one(
+            {'_id':ObjectId(group_id)},
+            {'$pull':{
+                'assignments':{
+                    '_id':ObjectId(assingment_id)
                 }
-            }},
-            upsert=True
+            }}
         )
-        db.tasks.insert_one({'assignment_id': _id})
+
 
 
 class Tasks(Resource):
-
     @jwt_required
     def get(self, assignment_id):
         print(assignment_id)
@@ -156,17 +141,20 @@ class Tasks(Resource):
             {'assignment_id': ObjectId(assignment_id)},
             {'_id': False, 'tasks': True}
         )
-
-        return Response(
-            json_util.dumps(tasks),
-            mimetype='application/json'
-        )
+        
+        if 'tasks' in tasks:
+            return Response(
+                json_util.dumps(tasks['tasks']),
+                mimetype='application/json'
+            )
+        else:
+            return Response(
+                json_util.dumps([]),
+                mimetype='application/json'
+            )
 
     @jwt_required
     def post(self, assignment_id):
-    
-        group_id = request.json['group_id']
-
         counter = db.counter.find_one_and_update(
             {'counter': 'task'},
             {
@@ -174,12 +162,15 @@ class Tasks(Resource):
                     'seq': 1
                 }
             },
+            upsert=True,
             return_document=ReturnDocument.AFTER
         )
-   
-        task = request.json['task']
+
+        task = request.json
+        print(task)
         task['_id'] = ObjectId()
         task['seq'] = counter['seq']
+        print(task)
         db.tasks.update_one(
             {
                 'assignment_id': ObjectId(assignment_id),
@@ -197,9 +188,34 @@ class Tasks(Resource):
         )
 
 
-class UpdateTask(Resource):
-    def post(self):
-        pass
+class Task(Resource):
+    def put(self,assignment_id,task_id):
+        
+        task = request.json
+        
+        db.tasks.update_one(
+        {
+            'assignment_id':ObjectId(assignment_id),
+            'tasks._id':ObjectId(task_id)
+        },
+        {
+            '$set':{
+                'tasks.$':{
+                    '_id':ObjectId(task['_id']),
+                    'creator':task['creator'],
+                    'assign_to':task['assign_to'],
+                    'task':task['task'],
+                    'description':task['description'],
+                    'created_date':task['created_date'],
+                    'due_date':task['due_date'],
+                    'assign_date':task['assign_date'],
+                    'last_updated':task['last_updated'],
+                    'priority':task['priority'],
+                    'status':task['status'],
+                    'seq':task['seq']
+                }
+            }
+        })
 
     def delete(self, assignment_id, task_id):
         try:
@@ -223,9 +239,8 @@ class UpdateTask(Resource):
 
 # Used to update task status , delete from old array and push to new
 
-
-class UpdateTaskStatus(Resource):
-    def put(self, assignment_id):
+class TaskStatus(Resource):
+    def put(self,assignment_id):
         tasks = request.json['tasks']
         for task in tasks:
             print(task)
@@ -242,39 +257,3 @@ class UpdateTaskStatus(Resource):
                     }
                 },
             )
-
-        """
-        cursorTasks = db.assignments.aggregate([
-          {'$match':{
-              'group_id': ObjectId(group_id),
-          }},
-          {'$unwind':'$assignments'},
-          {'$match':{'assignments._id': ObjectId(assignment_id)}},
-          {'$unwind':'$assignments.tasks'},
-          {'$match':{'assignments.tasks._id': {'$in':tasks_id}}},  
-          {'$project':
-          {
-            
-              '_id':'$assignments.tasks._id',
-              'creator': '$assignments.tasks.creator',
-              'assignTo' :'$assignments.tasks.assignTo',
-              'task' : '$assignments.tasks.task',
-              'description' : '$assignments.tasks.description',
-              'createdDate' : '$assignments.tasks.createdDate',
-              'assignDate' : '$assignments.tasks.assignDate',
-              'dueDate' : '$assignments.tasks.dueDate',
-              'lastUpdated' : '$assignments.tasks.lastUpdated',
-              'priority' : '$assignments.tasks.priority',
-              'status' : '$assignments.tasks.status',
-            
-          }}
-        ])
-
-        tasksJson = json.loads(json_util.dumps(cursorTasks))
-
-        for task in tasks:
-            for taskJson in tasksJson:
-                if(taskJson['_id']['$oid'] == task['id']):
-                    taskJson['status'] = task['status']
-        
-        """

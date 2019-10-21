@@ -21,7 +21,6 @@ from bson.json_util import dumps, ObjectId
 import PIL.Image
 
 
-
 def allowed_file(filename):
     ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
 
@@ -32,7 +31,21 @@ def allowed_file(filename):
 def fileExtension(filename):
     return filename.rsplit('.', 1)[1].lower()
 
-    
+
+class GroupworksSearch(Resource):
+    def put(self):
+        search = request.json
+        print(request.json)
+        data = db.groupworks.find(
+            {
+                'course': {'$regex': search}
+            },
+        )
+        return Response(
+            json_util.dumps(data),
+            mimetype='application/json'
+        )
+
 
 class Groupworks(Resource):
     def get(self):
@@ -40,18 +53,14 @@ class Groupworks(Resource):
 
     @jwt_required
     def post(self):
+        _id = ObjectId()
         current_user = get_jwt_identity()
-        name = request.json['name']
-        description = request.json['description']
-        course = request.json['course']
-        invitation_list = [] if request.json['members'] == None else request.json['members']
-        _id = db.groupworks.insert_one({
-            'creator': current_user,
-            'name': name,
-            'description': description,
-            'course': course,
-            'invitation_list': invitation_list
-        })
+        groupwork = request.json
+        groupwork['_id'] = _id
+        groupwork['creator'] = current_user
+
+        invitation_list = groupwork['invitation_list']
+        db.groupworks.insert_one(document=groupwork)
         # Fetch all available users in invitationList
         query = db.users.aggregate([
             {
@@ -81,7 +90,7 @@ class Groupworks(Resource):
         invitation_list = [] if not invitation_list else invitation_list[0]['invitation_list']
         # Push new groupwork to creator active_group
         db.users.update_one({'email': current_user}, {
-                            '$push': {'active_group': _id.inserted_id}}, upsert=True)
+                            '$push': {'active_group': _id}}, upsert=True)
         # Update the group invitation list
         db.inbox.update_many(
             {
@@ -91,7 +100,7 @@ class Groupworks(Resource):
                 '$addToSet': {
                     'active_group_invitation': {
                         'inviter': current_user,
-                        'group_id': _id.inserted_id,
+                        'group_id': _id,
                         'answer': None,
                     }
                 }
@@ -104,26 +113,54 @@ class Groupworks(Resource):
             'role': 0
         }
 
-        db.groupworks.update_one({'_id': _id.inserted_id}, {
+        db.groupworks.update_one({'_id': _id}, {
                                  '$push': {'members': member}})
         # Iniital Assignment Collection
+        db.timelines.insert_one(
+            {'_id':ObjectId(),
+            'group_id':_id,
+            'contributions':[]
+            }
+        )
 
- 
+
 class Groupwork(Resource):
 
-    def get(self,group_id):
+    def get(self, group_id):
         group = db.groupworks.find_one(
-            {'_id':ObjectId(group_id)}
+            {'_id': ObjectId(group_id)}
         )
 
         return Response(
             json_util.dumps(group)
         )
 
+    @jwt_required
+    def put(self, group_id):
+        current_user = get_jwt_identity()
+        supervisor = request.json['supervisor']
+        description = request.json['description']
+        course = request.json['course']
+
+        try:
+            db.groupworks.update_one(
+                {'_id': ObjectId(group_id)},
+                {
+                    '$set': {
+                        'supervisor': supervisor,
+                        'description': description,
+                        'course': course,
+                    }
+                }
+            )
+        except:
+
+            abort(400, message="Something Wrong")
+
 
 class GroupworkProfileImage(Resource):
 
-    def post(self,group_id):
+    def post(self, group_id):
         parse = reqparse.RequestParser()
         parse.add_argument('image', type=FileStorage, location='files')
         args = parse.parse_args()
@@ -218,7 +255,7 @@ class Members(Resource):
             db.groupworks.update_one({
                 '_id': ObjectId(group_id),
             },
-                {'$push': {
+                {'$addToSet': {
                     'invitation_list': email,
                 }}
             )
@@ -330,3 +367,4 @@ class Requests(Resource):
                     }
                 }
             })
+
