@@ -61,7 +61,7 @@ class Assignments(Resource):
             }},
             upsert=True
         )
-        db.tasks.insert_one({'assignment_id': _id})
+        db.tasks.insert_one({'group_id':ObjectId(group_id),'assignment_id': _id})
         
 
 

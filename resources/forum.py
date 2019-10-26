@@ -23,7 +23,7 @@ import PIL.Image
 class Forum(Resource):
     def get(self,course):
 
-        dicussions = db.forum.find_one(
+        dicussions = db.collaborate.find_one(
             {'course':course},
             {'_id':False,'discussions':True}
         )
@@ -39,7 +39,7 @@ class Forum(Resource):
         discussion = request.json
         discussion['_id'] = ObjectId()
         discussion['by'] = current_user
-        db.forum.update_one(
+        db.collaborate.update_one(
             {'course':course},
             {'$addToSet':{
                 'discussions':discussion
@@ -51,7 +51,7 @@ class Forum(Resource):
 class Discussion(Resource):
     @jwt_required
     def get(self,course,discussion):
-        discussion = db.forum.find_one(
+        discussion = db.collaborate.find_one(
             {'course':course,'discussions._id':ObjectId(discussion)},
             {'_id':False,'discussions.$':True}
         )
@@ -68,7 +68,7 @@ class Discussion(Resource):
         reply = request.json
         reply['_id'] = ObjectId()
         reply['by'] = current_user
-        db.forum.update_one(
+        db.collaborate.update_one(
             {'course':course,'discussions._id':ObjectId(discussion)},
             {'$addToSet':{
                 'discussions.$.replies':reply
@@ -79,7 +79,7 @@ class Discussion(Resource):
     def put(self,course,discussion):
         reply = request.json
         print(reply)
-        db.forum.update_one(
+        db.collaborate.update_one(
             {'course':course,'discussions._id':ObjectId(discussion)},
             {'$pull':{
                 'discussions.$.replies': {
@@ -89,4 +89,29 @@ class Discussion(Resource):
         )
 
 
+class Markers(Resource):
+    def get(self,course):
+        markers = db.collaborate.find_one(
+            {'course':course},
+            {'_id':False,'markers':True}
+        )
 
+        if 'markers' not in markers:
+            markers['markers'] = []
+
+        return Response(
+            json_util.dumps(markers),
+            mimetype='application/json'
+        )
+
+    def post(self,course):
+        marker = request.json
+
+        db.collaborate.insert_one(
+            {'course':course},
+            {'$addToSet':{
+                'markers':marker
+            }}
+        )
+
+        
