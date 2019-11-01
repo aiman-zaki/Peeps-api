@@ -3,7 +3,7 @@ node {
         checkout scm
     }
     stage('docker build'){
-        def customImage = docker.build('peeps:latest','-f deployment/nginx/Dockerfile .')
+        def customImage = docker.build('peeps:latest','--network=host -f deployment/nginx/Dockerfile .')
     }
     stage('docker update'){
         sh '''#!/bin/bash
