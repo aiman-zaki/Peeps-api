@@ -18,7 +18,7 @@ from werkzeug.serving import run_simple
 import config
 
 from main import app, jwt , api , socketio
-from resources import auth,users,groupworks,assignments,inbox,stash,groupwork_socket,forum,timeline
+from resources import auth,users,groupworks,assignments,inbox,stash,groupwork_socket,forum,timeline,question,supervisor
 from resources_v2 import groupworksv2 , assignmentsv2
 
 
@@ -103,20 +103,29 @@ api.add_resource(stash.Notes,'/api/groupworks/<group_id>/notes')
 api.add_resource(groupworksv2.Requests,'/api/groupworks/<group_id>/requests')
 api.add_resource(assignments.Assignments, '/api/groupworks/<group_id>/assignments')
 api.add_resource(assignments.AssignmentDelete, '/api/groupworks/<group_id>/assignments/delete')
+api.add_resource(assignments.AssignmentStatus, '/api/groupworks/<group_id>/assignments/status')
 api.add_resource(timeline.Timeline,'/api/groupworks/<group_id>/timelines')
 api.add_resource(stash.References,'/api/groupworks/<group_id>/references')
+api.add_resource(stash.PublicReferences,'/api/groupworks/<group_id>/references/public')
 
 #Requires GroupId and Assignment Id 
 api.add_resource(assignments.Assignment, '/api/groupworks/<assignment_id>')
 api.add_resource(assignments.Tasks,'/api/groupworks/<assignment_id>/tasks')
+api.add_resource(assignments.PeerReview,'/api/groupworks/<assignment_id>/peer-review')
 api.add_resource(assignments.TaskStatus,'/api/groupworks/<assignment_id>/tasks/status')
 api.add_resource(assignments.Task, '/api/groupworks/<assignment_id>/<task_id>/task')
 
-
+ 
 #Forum API
 api.add_resource(forum.Forum, '/api/forums/<course>')
 api.add_resource(forum.Discussion ,'/api/forums/<course>/<discussion>')
+api.add_resource(forum.Markers,'/api/forums/<course>/markers')
 
+#Peers Review
+api.add_resource(question.Questions, '/api/questions')
+
+#Supervisor
+api.add_resource(supervisor.SuperviseGroupworks, '/api/supervisor/groupworks')
 
 #Socket-IO Namespace
 socketio.on_namespace(groupwork_socket.GroupChat('/group_chat'))

@@ -29,6 +29,8 @@ class References(Resource):
                 'references':True,
             }
         )
+        if references is None:
+            return []
         return Response(
             json_util.dumps(references['references']),
             mimetype='application/json'
@@ -46,12 +48,31 @@ class References(Resource):
         ,upsert=True
         )
 
+class PublicReferences(Resource):
+    def get(self,group_id):
+        references = db.stash.find_one(
+            {
+                '$and':[
+                    {'group_id':ObjectId(group_id)},
+                    {'references.publicity':1}
+                ]
+            },
+            {
+                '_id':False,
+                'references.$':True
+            }
+        
+        )
+        if references is None:
+            return []
+        return Response(
+            json_util.dumps(references['references']),
+            mimetype='application/json'
+        )
         
 
 class Notes(Resource):
-    
     def get(self,group_id):
-        
         print(group_id)
         notes = db.stash.find_one(
             {

@@ -96,22 +96,50 @@ class Markers(Resource):
             {'_id':False,'markers':True}
         )
 
+        if markers is None:
+            markers = {}
+
         if 'markers' not in markers:
             markers['markers'] = []
-
+        
         return Response(
-            json_util.dumps(markers),
+            json_util.dumps(markers['markers']),
             mimetype='application/json'
         )
 
     def post(self,course):
         marker = request.json
-
-        db.collaborate.insert_one(
-            {'course':course},
-            {'$addToSet':{
-                'markers':marker
-            }}
-        )
+        marker['_id'] = ObjectId()
+        print(marker)
+        if db.collaborate.find(
+            {
+                '$and':[
+                    {'course':course},
+                    {'markers.email':marker['email']}
+                ]
+            }
+        ).count() == 0 : 
+            db.collaborate.update_one(
+                {'course':course},
+                {'$addToSet':{
+                    'markers':marker
+                }},upsert=True   
+            )
+        else: 
+            #TODO : temp 
+            db.collaborate.update_one(
+                {'course':course},
+                {'$pull':{
+                    'markers':{
+                        'email':marker['email']
+                    }
+                }}
+            )
+            db.collaborate.update_one(
+                {'course':course},
+                {'$addToSet':{
+                    'markers':marker
+                }},upsert=True   
+            )
 
         
