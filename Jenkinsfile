@@ -3,16 +3,12 @@ node {
         checkout scm
     }
     stage('docker build'){
-        def version = readFile('VERSION')
-        def versions = version.split('\\.')
-        def major = versions[0]
-        def minor = versions[0] + '.' + versions[1]
-        def patch = version.trim()
-        
+        def version = readFile('VERSION')        
         def customImage = docker.build('peeps:'+version,' -f deployment/nginx/Dockerfile .')
 
     }
     stage('docker update'){
+        def version = readFile('VERSION')
         sh '''#!/bin/bash
             
             docker rm -f peeps
