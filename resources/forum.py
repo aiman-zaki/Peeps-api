@@ -27,12 +27,15 @@ class Forum(Resource):
             {'course':course},
             {'_id':False,'discussions':True}
         )
+        print(dicussions)
+        if dicussions is not None:
+            if 'dicussions' in dicussions:
+                return Response(
+                json_util.dumps(dicussions['discussions']),
+                mimetype='application/json'
 
-        return Response(
-            json_util.dumps(dicussions),
-            mimetype='application/json'
-
-        )
+            )
+        return []
     @jwt_required
     def post(self,course):
         current_user = get_jwt_identity()

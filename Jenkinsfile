@@ -8,7 +8,7 @@ node {
     stage('docker update'){
         sh '''#!/bin/bash
             docker rm -f peeps
-            docker run -d --name peeps -p 8080:8080 --network="host" -t peeps:latest
+            docker run -d --name peeps -p 0.0.0.0:8080:8080 --network="host" -t peeps:latest
         '''
     }
 

@@ -23,6 +23,10 @@ questions = [
     {'question':'Are you sure he is legit'}
 ]
 
+class InitQuestions(Resource):
+    def get(self):
+        db.questions.insert_one(questions)
+
 class Questions(Resource):
     def get(self):
         question = db.questions.find()

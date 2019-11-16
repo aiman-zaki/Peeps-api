@@ -123,6 +123,7 @@ api.add_resource(forum.Markers,'/api/forums/<course>/markers')
 
 #Peers Review
 api.add_resource(question.Questions, '/api/questions')
+api.add_resource(question.InitQuestions, '/api/questions/init')
 
 #Supervisor
 api.add_resource(supervisor.SuperviseGroupworks, '/api/supervisor/groupworks')

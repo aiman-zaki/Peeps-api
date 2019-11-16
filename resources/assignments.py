@@ -311,7 +311,6 @@ class PeerReview(Resource):
             {'_id':False,'reviews.$':True}
         )
         if data is not None:
-            print("hantar")
             return Response(
                 json_util.dumps(data['reviews'][0]),
                 mimetype='application/json'
