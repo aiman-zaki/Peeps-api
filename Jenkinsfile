@@ -9,11 +9,11 @@ node {
     }
     stage('docker update'){
         def version = readFile('VERSION')
-        sh '''#!/bin/bash
+        sh """#!/bin/bash
             
             docker rm -f peeps
             docker run -d --name peeps -p 0.0.0.0:8080:8080 -t peeps:${version}
-        '''
+        """
     }
 
 }
