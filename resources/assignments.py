@@ -1,4 +1,4 @@
-from pymongo import MongoClient, ReturnDocument
+from pymongo import MongoClient, ReturnDocument,InsertOne, DeleteMany, ReplaceOne, UpdateOne
 from flask_jwt_extended import (
     JWTManager, jwt_required, create_access_token,
     get_jwt_identity, decode_token, create_refresh_token, jwt_refresh_token_required,
@@ -17,10 +17,25 @@ from bson import json_util
 from main import db, app
 from bson.json_util import dumps, ObjectId
 
+def countTaskSeq():
+    counter = db.counter.find_one_and_update(
+        {'counter': 'task'},
+        {
+            '$inc': {
+                'seq': 1
+            }
+        },
+        upsert=True,
+        return_document=ReturnDocument.AFTER
+    )
+    return counter['counter']
+
 
 class Assignments(Resource):
-    # @jwt_required
+    @jwt_required
     def get(self, group_id):
+        current_user = get_jwt_identity()
+        
         data = db.groupworks.find_one(
             {
                 '_id': ObjectId(group_id)
@@ -30,15 +45,24 @@ class Assignments(Resource):
                 'assignments': True,
             }
         )
+        #get user point
+        if data is not None:
+            for assignment in data['assignments']:
+                point = db.peer_review.find_one({
+                    'assignment_id':assignment['_id'],
+                    'points.member':current_user,
+                },{
+                    '_id':False,
+                    'points.$':True
+                })
+                assignment['user_point'] = point['points'][0]['points']
+            print(data)
 
-        if 'assignments' not in data:
-            data = {}
-            data['assignments'] = []
-
-        return Response(
-            json_util.dumps(data['assignments']),
-            mimetype='application/json'
-        )
+            return Response(
+                json_util.dumps(data['assignments']),
+                mimetype='application/json'
+            )
+        return []
 
     def post(self, group_id):
         _id = ObjectId()
@@ -69,12 +93,17 @@ class Assignments(Resource):
             {'_id':False,'members':True}
         )
         reviews = []
+        points = []
         for member in members['members']:
             reviews.append({
                 'reviewer':member['email'],
                 'reviewed':[
 
                 ]
+            })
+            points.append({
+                'member':member['email'],
+                'points':50
             })
         
 
@@ -83,9 +112,45 @@ class Assignments(Resource):
             {
                 '_id':ObjectId(),
                 'assignment_id':_id,
+                'points':points,
                 'reviews':reviews
             }
         )
+
+        #Initial Timeline
+        db.timelines.update_one(
+            {
+                'group_id':ObjectId(group_id),
+            },{
+                '$addToSet':{
+                    'contributions':{
+                        'assignment_id':_id
+                    }
+                }
+            },upsert=True
+        )
+
+    def put(self,group_id):
+        data = request.json
+        data['_id'] = ObjectId(data['_id'])
+        db.groupworks.bulk_write([
+            UpdateOne(
+                {'_id':ObjectId(group_id)},
+                {'$pull':{'assignments':{
+                    '_id':data['_id']
+                }}}),
+            UpdateOne(
+                {'_id':ObjectId(group_id)},
+                {'$push':{
+                    'assignments':data,
+                }}
+            )
+        ])
+
+#Read All assignments in a groupwork and all user points
+class AssignmentsUserPoint(Resource):
+    def get(self, group_id):
+        pass
 
 
 class Assignment(Resource):
@@ -212,7 +277,7 @@ class Tasks(Resource):
 
         task = request.json
         task['_id'] = ObjectId()
-        task['seq'] = counter['seq']
+        task['seq'] = countTaskSeq()
         db.tasks.update_one(
             {
                 'assignment_id': ObjectId(assignment_id),
@@ -286,7 +351,6 @@ class TaskStatus(Resource):
     def put(self, assignment_id):
         tasks = request.json['tasks']
         for task in tasks:
-            print(task)
             db.tasks.update_one(
                 {
 
@@ -301,6 +365,115 @@ class TaskStatus(Resource):
                 },
             )
 
+
+class TaskAssignTo(Resource): 
+    def get(self,assignment_id):
+
+        #TODO : will use aggreate but not now
+        requests = db.tasks.find_one(
+            {'assignment_id':ObjectId(assignment_id)},
+            {
+                '_id':False,'requests':True
+            }
+        )
+
+        if 'requests' not in requests:
+            return []
+
+        requests = requests['requests']
+        requests_tasks = list()
+
+        for request in requests:
+            requests_tasks.append(request['task_id'])
+
+        #TODO HOW THE F
+        tasks = list()
+        for request in requests_tasks:
+            tasks.append(
+                db.tasks.find_one(
+                    {
+                        'assignment_id':ObjectId(assignment_id),
+                        'tasks._id':request,},
+                    {
+                        '_id':False,'tasks.$':True,
+                    })['tasks'][0]
+            )
+
+        '''tasks = db.tasks.find_one(
+            {
+                'assignment_id':ObjectId(assignment_id),
+                'tasks':{
+                    '$elemMatch':{
+                        '_id':{'$in':requests_tasks}
+                    }
+                }
+               
+           
+            },{
+                '_id':False,
+                'tasks.$':True
+                
+            }
+        )'''
+        #TODO : dumb dumb buat worked
+        i = 0
+        if tasks is not None:
+
+            for request in requests:
+                request['task'] = tasks[i]
+                i = i+1
+            return Response(
+                json_util.dumps(requests),
+                mimetype='application/json'
+            )
+        return []
+
+
+    #User request to change ownership
+    @jwt_required
+    def post(self,assignment_id):
+        _id = ObjectId()
+        current_user = get_jwt_identity()
+        task = request.json
+        task['_id'] = _id
+        task['requester'] = current_user
+        task['task_id'] = ObjectId(task['task_id'])
+        db.tasks.update_one(
+            {'assignment_id':ObjectId(assignment_id)},
+            {
+                '$addToSet':{
+                    'requests': task
+                }
+            }
+        )
+
+    @jwt_required
+    def put(self,assignment_id):
+        req = request.json
+        print(req)
+        db.tasks.update_one(
+            {
+                'assignment_id':ObjectId(assignment_id),
+                'tasks._id':ObjectId(req['task_id'])
+            },
+            {
+                '$set':{
+                    'tasks.$.assign_to':req['requester']
+                }
+            }
+        )
+        
+        db.tasks.update_one(
+            {
+                'assignment_id':ObjectId(assignment_id),
+                'requests._id':ObjectId(req['_id']),
+            },
+            {
+                '$set':{
+                    'requests.$.approval':req['approval'],
+                }
+            }
+        )
 
 class PeerReview(Resource):
     @jwt_required
@@ -320,8 +493,6 @@ class PeerReview(Resource):
                 json_util.dumps({'reviewer':current_user,'reviewed':[]}),
                 mimetype='application/json'
             )
-       
-       
         
     @jwt_required
     def post(self, assignment_id):
@@ -341,12 +512,9 @@ class PeerReview(Resource):
             }])
 
         data = list(data)
-        print(data)
-
         index = data[0]['index']
         for i in answer['answers']:
             i['_id'] = ObjectId(i['_id'])
-
 
         if index > -1:
             if db.peer_review.find(
@@ -365,8 +533,6 @@ class PeerReview(Resource):
             else:
                 print("already reviewd")
         else:
-
-
             db.peer_review.update_one(
                 {'assignment_id':ObjectId(assignment_id)},
                 {'$addToSet':{
@@ -379,4 +545,3 @@ class PeerReview(Resource):
                 }}
             )
 
-        print(answer)

@@ -126,4 +126,50 @@ class ReplyInvitationInbox(Resource):
                 UpdateOne({'_id':(group_id)},{'$push':{'members':member}},upsert=True),
                 UpdateOne({'_id':(group_id)},{'$pull':{'invitation_list':current_user}})
             ]),
+
+            #Initial PeersReview Collection
+            
+            assignments = db.groupworks.find_one(
+                {
+                    '_id':ObjectId(group_id),
+                },
+                {
+                    '_id':False,'assignments':True
+                }
+            )
+            print(assignments)
+
+            for assignment in assignments['assignments']:
+                print(assignment)
+                db.peer_review.update_one(
+                    {
+                        'assignment_id':assignment['_id'],
+
+                    },{
+                        '$addToSet':{
+                            'points':{
+                                'member':current_user,
+                                'points':50
+                            },
+                            'reviews':{
+                                'reviewer':current_user,
+                                'reviewed':[
+
+                                ]
+                            }
+                        },
+                    }
+                )
+                db.timelines.update_one(
+                    {
+                        'group_id':ObjectId(group_id),
+                    },{
+                        '$addToSet':{
+                            'contributions':{
+                                'assignment_id':ObjectId(assignment['_id'])
+                            }
+                        }
+                    },upsert=True
+                )
+                
        

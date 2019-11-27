@@ -19,7 +19,20 @@ from bson import json_util
 from main import db, app
 from bson.json_util import dumps, ObjectId
 import PIL.Image
+import datetime
 
+def countTaskSeq():
+    counter = db.counter.find_one_and_update(
+        {'counter': 'task'},
+        {
+            '$inc': {
+                'seq': 1
+            }
+        },
+        upsert=True,
+        return_document=ReturnDocument.AFTER
+    )
+    return counter['counter']
 
 def allowed_file(filename):
     ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
@@ -74,7 +87,7 @@ class GroupworkProfileImage(Resource):
         pass
 
 
-class Groupwork(Resource):
+class Groupworks(Resource):
     @jwt_required
     def get(self):
         current_user = get_jwt_identity()
@@ -128,13 +141,15 @@ class Groupwork(Resource):
         name = request.json['name']
         description = request.json['description']
         course = request.json['course']
+        template_id = request.json['template_id']
         invitation_list = [] if request.json['members'] == None else request.json['members']
         _id = db.groupworks.insert_one({
             'creator': current_user,
             'name': name,
             'description': description,
             'course': course,
-            'invitation_list': invitation_list
+            'invitation_list': invitation_list,
+            'template_id': ObjectId(template_id),
         })
         # Fetch all available users in invitationList
         query = db.users.aggregate([
@@ -187,10 +202,89 @@ class Groupwork(Resource):
             'email': current_user,
             'role': 0
         }
+        
 
         db.groupworks.update_one({'_id': _id.inserted_id}, {
                                  '$push': {'members': member}})
-        # Iniital Assignment Collection
+
+        db.timelines.insert_one(
+            {
+                '_id':ObjectId(),
+                'group_id':_id,
+                'contributions':[]
+            }
+        )
+
+        #if template_id is not null, generate assignment and tasks
+        '''
+            TODO: better implementation?
+            this function will generate assignment and tasks based on tempalte_id 
+        '''
+        template_id = "5ddd52b37fb2c11b69c905c0"
+        if template_id is not None:
+            print("test")
+            template = db.courses.aggregate([
+                {
+                    '$match':{
+                        'code':course,
+                }},
+                {'$unwind':'$templates'},
+                {
+                    '$project':{
+                        '_id':False,
+                        'template':{
+                            '$filter':{
+                                'input':'$templates.template',
+                                'as':'template',
+                                'cond':{
+                                    '$and':[
+                                        {'$eq':['$$template._id',ObjectId(template_id)],},
+                                        
+                                    ]    
+                                }
+                            }
+                        }
+                    }
+                }
+            ])  
+            template = list(template)[0]['template']
+            for assignment in template['assignments']:
+                assignment_id = ObjectId()
+                db.groupworks.update_one({
+                    '_id':_id,
+                },{
+                    '$addToSet':{
+                        'assignments':{
+                            '_id': assignment_id,
+                            'title': assignment['title'],
+                            'description': assignment['description'],
+                            'leader': '',
+                            'total_marks': assignment['total_marks'],
+                            'created_date': datetime.datetime.now(),
+                            'due_date': assignment['due_date'],
+                            'status': 1
+                        }
+                    }
+                })
+                tasks = list()
+                for task in assignment['tasks']:
+                    tasks.append({
+                        "_id":ObjectId(),
+                        "creator":"by template",
+                        "assign_to":"",
+                        "task":task['title'],
+                        "description":task['description'],
+                        "created_date":datetime.datetime.now(),
+                        "assign_date":"",
+                        "due_date":"",
+                        "last_update":datetime.datetime.now(),
+                        "priority":0,
+                        "status":3,
+                        "seq": countTaskSeq()
+                    })
+
+                
+
 
         return Response(
             status=200

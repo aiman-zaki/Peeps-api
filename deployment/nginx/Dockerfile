@@ -35,6 +35,8 @@ RUN ln -s /usr/local/bin/docker-entrypoint.sh / && \
     chgrp -R 0 /usr/local/bin/docker-entrypoint.sh && \
     chown -R nginx:root /usr/local/bin/docker-entrypoint.sh
 
+COPY VERSION /
+
 WORKDIR ${HOME}
 ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["supervisord"]

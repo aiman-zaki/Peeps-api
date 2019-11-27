@@ -23,29 +23,47 @@ import PIL.Image
 
 class Timeline(Resource):
     def get(self,group_id):
-        data = db.timelines.find_one(
+
+        data = db.timelines.distinct('contributions.data',{'group_id':ObjectId(group_id)})
+
+
+        data2 = db.timelines.find_one(
             {'group_id':ObjectId(group_id)},
             {'_id:':False,'contributions':{'$slice':-10}},
             
         )
-        if 'contributions' not in data:
-            print("test")
-            data['contributions'] = []
+
         return Response(
-            json_util.dumps(data['contributions']),
+            json_util.dumps(data),
             mimetype="application/json"
         )
 
     def post(self,group_id):
         data = request.json
         data.pop('room',None)
-        db.timelines.update_one(
-            {'group_id':ObjectId(group_id)},
-            {'$addToSet': {
-                'contributions': data
-            }}
-            ,upsert=True
-        )
+        if data['assignment_id'] == None:
+            db.timelines.update_one(
+                {'group_id':ObjectId(group_id)},
+                {'$addToSet': {
+                    'contributions': data
+                }}
+                ,upsert=True
+            )
+        else:
+            print(data)
+            assignment_id = data['assignment_id']
+            print(assignment_id)
+            data.pop('assignment_id')
+            db.timelines.update_one(
+                {
+                    'group_id':ObjectId(group_id),
+                    'contributions.assignment_id':ObjectId(assignment_id)
+                },{
+                    '$addToSet':{
+                        'contributions.$.data':data
+                    }
+                }
+            )
 
 class TimelineCount(Resource):
     def get(self,group_id,count):
