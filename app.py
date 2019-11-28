@@ -18,7 +18,7 @@ from werkzeug.serving import run_simple
 import config
 
 from main import app, jwt , api , socketio
-from resources import auth,users,groupworks,assignments,inbox,stash,groupwork_socket,forum,timeline,question,supervisor
+from resources import auth,users,groupworks,assignments,inbox,stash,groupwork_socket,forum,timeline,question,supervisor,courses
 from resources_v2 import groupworksv2 , assignmentsv2
 
 
@@ -91,6 +91,7 @@ api.add_resource(users.UserAssignmentsAndTasks,'/api/user/tasks')
 api.add_resource(users.Role,'/api/user/role')
 api.add_resource(users.ActiveGroupworks, '/api/user/groupworks')
 api.add_resource(users.UserAssignments,'/api/user/assignments')
+
 #Groupworks API
 api.add_resource(groupworksv2.Groupworks, '/api/groupworks')
 api.add_resource(groupworksv2.GroupworksSearch, '/api/groupworks/search')
@@ -106,13 +107,16 @@ api.add_resource(assignments.AssignmentDelete, '/api/groupworks/<group_id>/assig
 api.add_resource(assignments.AssignmentStatus, '/api/groupworks/<group_id>/assignments/status')
 api.add_resource(timeline.Timeline,'/api/groupworks/<group_id>/timelines')
 api.add_resource(stash.References,'/api/groupworks/<group_id>/references')
+api.add_resource(assignments.AssignmentsUserPoint, '/api/groupworks/<group_id>/assignments/point')
 api.add_resource(stash.PublicReferences,'/api/groupworks/<group_id>/references/public')
 
 #Requires GroupId and Assignment Id 
 api.add_resource(assignments.Assignment, '/api/groupworks/<assignment_id>')
 api.add_resource(assignments.Tasks,'/api/groupworks/<assignment_id>/tasks')
 api.add_resource(assignments.PeerReview,'/api/groupworks/<assignment_id>/peer-review')
+
 api.add_resource(assignments.TaskStatus,'/api/groupworks/<assignment_id>/tasks/status')
+api.add_resource(assignments.TaskAssignTo, '/api/groupworks/<assignment_id>/tasks/requests')
 api.add_resource(assignments.Task, '/api/groupworks/<assignment_id>/<task_id>/task')
 
  
@@ -126,7 +130,14 @@ api.add_resource(question.Questions, '/api/questions')
 api.add_resource(question.InitQuestions, '/api/questions/init')
 
 #Supervisor
+api.add_resource(courses.SupervisorCourse,'/api/supervisor/courses')
 api.add_resource(supervisor.SuperviseGroupworks, '/api/supervisor/groupworks')
+api.add_resource(courses.SupervisorGroupworkTemplate,'/api/supervisor/<code>/templates')
+
+#course
+api.add_resource(courses.SearchSupervisorGroupworkTemplate, '/api/courses/<code>/<supervisor>')
+api.add_resource(courses.Courses, '/api/courses')
+api.add_resource(courses.Course,'/api/courses/<code>')
 
 #Socket-IO Namespace
 socketio.on_namespace(groupwork_socket.GroupChat('/group_chat'))

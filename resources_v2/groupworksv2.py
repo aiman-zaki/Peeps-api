@@ -20,7 +20,9 @@ from main import db, app
 from bson.json_util import dumps, ObjectId
 import PIL.Image
 
-def countTaskSeq():
+datetimestring = str(datetime.datetime.now())
+
+def count_task_seq():
     counter = db.counter.find_one_and_update(
         {'counter': 'task'},
         {
@@ -31,7 +33,130 @@ def countTaskSeq():
         upsert=True,
         return_document=ReturnDocument.AFTER
     )
-    return counter['counter']
+    return counter['seq']
+
+def post_task_init(groupwork_id,assignment_id):
+
+    members = db.groupworks.find_one(
+        {'_id':groupwork_id},
+        {'_id':False,'members':True}
+    )
+    reviews = []
+    points = []
+    for member in members['members']:
+        reviews.append({
+            'reviewer':member['email'],
+            'reviewed':[
+
+            ]
+        })
+        points.append({
+            'member':member['email'],
+            'points':50
+        })
+    
+
+    #Initial PeersReview Collection
+    db.peer_review.insert_one(
+        {
+            '_id':ObjectId(),
+            'assignment_id':assignment_id,
+            'points':points,
+            'reviews':reviews
+        }
+    )
+
+    #Initial Timeline
+    db.timelines.update_one(
+        {
+            'group_id':groupwork_id,
+        },{
+            '$addToSet':{
+                'contributions':{
+                    'assignment_id':assignment_id
+                }
+            }
+        },upsert=True
+    )
+
+
+def get_template(course,template_id):
+    data = db.courses.aggregate([
+        {
+            '$match':{
+                'code':course,
+        }},
+        {'$unwind':'$templates'},
+        {
+            '$project':{
+                '_id':False,
+                'template':{
+                    '$filter':{
+                        'input':'$templates.template',
+                        'as':'template',
+                        'cond':{
+                            '$and':[
+                                {'$eq':['$$template._id',template_id],},
+                                
+                            ]    
+                        }
+                    }
+                }
+            }
+        }
+    ])
+
+    return data
+
+def generate_assignments_template(group_id,assignment_id,assignment_template):
+    db.groupworks.update_one({
+        '_id':group_id,
+    },{
+        '$addToSet':{
+            'assignments':{
+                '_id': assignment_id,
+                'template_id':assignment_template['_id'],
+                'title': assignment_template['title'],
+                'description': assignment_template['description'],
+                'leader': None,
+                'total_marks': assignment_template['total_marks'],
+                'created_date': datetimestring,
+                'start_date':assignment_template['start_date'],
+                'due_date': assignment_template['due_date'],
+                'status': 1,
+                'approval':2,
+            }
+        }
+    })
+
+def generate_tasks_template(group_id,assignment_id,tasks_template):
+    tasks = list()
+    for task in tasks_template:
+        tasks.append({
+            "_id":ObjectId(),
+            "creator":"by template",
+            "assign_to":"",
+            "task":task['title'],
+            "description":task['description'],
+            "created_date":datetimestring,
+            "assign_date":None,
+            "due_date":None,
+            "last_update":datetimestring,
+            "priority":0,
+            "status":0,
+            "seq": count_task_seq(),
+            "template_id":task['_id']
+        })
+    
+    db.tasks.insert_one(
+        {
+            'group_id':group_id,
+            'assignment_id':assignment_id,
+            'tasks':tasks,
+        }
+    )
+
+    
 
 
 def allowed_file(filename):
@@ -72,7 +197,6 @@ class Groupworks(Resource):
         groupwork['_id'] = _id
         groupwork['creator'] = current_user
         try:
-            print(groupwork['template_id'])
             groupwork['template_id'] = ObjectId(groupwork['template_id'])
         except:
             abort(400,message = 'Template not follow format')
@@ -147,129 +271,114 @@ class Groupworks(Resource):
         '''
 
         if groupwork['template_id'] is not None:
-            datetimestring = str(datetime.datetime.now())
-            template = db.courses.aggregate([
-                {
-                    '$match':{
-                        'code':groupwork['course'],
-                }},
-                {'$unwind':'$templates'},
-                {
-                    '$project':{
-                        '_id':False,
-                        'template':{
-                            '$filter':{
-                                'input':'$templates.template',
-                                'as':'template',
-                                'cond':{
-                                    '$and':[
-                                        {'$eq':['$$template._id',groupwork['template_id']],},
-                                        
-                                    ]    
-                                }
-                            }
-                        }
-                    }
-                }
-            ])
+            
+            template = get_template(groupwork['course'],groupwork['template_id'])
             template = list(template)
             template = template[0]['template']
             for assignment in template[0]['assignments']:
                 assignment_id = ObjectId()
-                db.groupworks.update_one({
-                    '_id':_id,
-                },{
-                    '$addToSet':{
-                        'assignments':{
-                            '_id': assignment_id,
-                            'title': assignment['title'],
-                            'description': assignment['description'],
-                            'leader': None,
-                            'total_marks': assignment['total_marks'],
-                            'created_date': datetimestring,
-                            'start_date':assignment['start_date'],
-                            'due_date': assignment['due_date'],
-                            'status': 1,
-                            'approval':2,
+                generate_assignments_template(_id,assignment_id,assignment)
+                generate_tasks_template(_id,assignment_id,assignment['tasks'])
+                post_task_init(_id,assignment_id)
+                
+
+def checkTemplateRevision(groupwork):
+    data = db.courses.aggregate([
+        {
+            '$match':{
+                'code':groupwork['course'],
+        }},
+        {'$unwind':'$templates'},
+        {
+            '$project':{
+                '_id':False,
+                'template':{
+                    '$filter':{
+                        'input':'$templates.template',
+                        'as':'template',
+                        'cond':{
+                            '$and':[
+                                {'$eq':['$$template._id',groupwork['template_id']],},
+                                
+                            ]    
                         }
+                    }
+                }
+            }
+        }
+    ])
+    template = list(data)[0]['template'][0]
+    if template['revision'] != groupwork['revision']:
+        #update assignment first
+        for assignment in template['assignments']:
+            #check if assignment exists
+
+            assignment_id = db.groupworks.find_one_and_update({
+                '_id':groupwork['_id'],
+                'assignments.template_id':assignment['_id']
+            },{
+                '$set':{
+                    'assignments.$.title':assignment['title'],
+                    'assignments.$.description':assignment['description'],
+                    'assignments.$.total_marks':assignment['total_marks'],
+                    'assignments.$.start_date':assignment['start_date'],
+                    'assignments.$.due_date':assignment['due_date'],
+                    
+                }
+            },{
+                '_id':False,
+                'assignments.$':True
+            })
+            """
+            If Supervisor add new assignment in the template, automtic create new
+            """
+
+            if assignment_id is None:
+                assignment_id = ObjectId()
+                generate_assignments_template(groupwork['_id'],assignment_id,assignment)
+                generate_tasks_template(groupwork['_id'],assignment_id,assignment['tasks'])
+                post_task_init(groupwork['_id'],assignment_id)
+            
+            else:
+                assignment_id = (assignment_id['assignments'][0]['_id'])
+                for task in assignment['tasks']:
+                    db.tasks.update_one({
+                        'group_id':groupwork['_id'],
+                        'assignment_id':ObjectId(assignment_id),
+                        'tasks.template_id':task['_id']
+                    },{
+                        '$set':{
+                            'tasks.$.task':task['title'],
+                            'tasks.$.description':task['description'],
+                            'tasks.$.difficulty':task['difficulty'],
+                        }
+                    })
+                db.groupworks.update_one({
+                    '_id':groupwork['_id'],
+                },{
+                    '$set':{
+                        'revision':template['revision'],
                     }
                 })
-                tasks = list()
-                for task in assignment['tasks']:
-                    tasks.append({
-                        "_id":ObjectId(),
-                        "creator":"by template",
-                        "assign_to":"",
-                        "task":task['title'],
-                        "description":task['description'],
-                        "created_date":datetimestring,
-                        "assign_date":None,
-                        "due_date":None,
-                        "last_update":datetimestring,
-                        "priority":0,
-                        "status":3,
-                        "seq": countTaskSeq()
-                    })
-                
-                db.tasks.insert_one(
-                    {'assignment_id':assignment_id,
-                    'tasks':tasks,}
-                )
-                '''
-                
-                '''
-                members = db.groupworks.find_one(
-                    {'_id':_id},
-                    {'_id':False,'members':True}
-                )
-                reviews = []
-                points = []
-                for member in members['members']:
-                    reviews.append({
-                        'reviewer':member['email'],
-                        'reviewed':[
+    else:
+        print(False)
 
-                        ]
-                    })
-                    points.append({
-                        'member':member['email'],
-                        'points':50
-                    })
-                
+    
 
-                #Initial PeersReview Collection
-                db.peer_review.insert_one(
-                    {
-                        '_id':ObjectId(),
-                        'assignment_id':assignment_id,
-                        'points':points,
-                        'reviews':reviews
-                    }
-                )
-
-                #Initial Timeline
-                db.timelines.update_one(
-                    {
-                        'group_id':_id,
-                    },{
-                        '$addToSet':{
-                            'contributions':{
-                                'assignment_id':assignment_id
-                            }
-                        }
-                    },upsert=True
-                )
-
-                
 
 
 
 class Groupwork(Resource):
 
     def get(self, group_id):
+        '''
+        check if template revision is matching
+        '''
         group = db.groupworks.find_one(
             {'_id': ObjectId(group_id)}
         )
+
+        checkTemplateRevision(group)
 
         return Response(
             json_util.dumps(group)

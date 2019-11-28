@@ -47,14 +47,15 @@ class SupervisorCourse(Resource):
             '_id':False,
             'courses':True
         })
-        if course is not None:
+        if 'courses' in course:
             course = db.courses.find({
                 'code':{'$in':course['courses']}
             })
-        return Response(
-            json_util.dumps(course),
-            mimetype='application/json'
-        )
+            return Response(
+                json_util.dumps(course),
+                mimetype='application/json'
+            )
+        return []
 
     @jwt_required
     def post(self):
