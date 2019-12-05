@@ -65,6 +65,8 @@ class Timeline(Namespace):
         send("A User is connected", room=room)
 
     def on_send_data(self, data):
+        data.pop('assignment_id')
+        data.pop('task_id')
         jsonencoded = json.dumps(data)
         emit('stream_data', jsonencoded, room=data['room'])
 
