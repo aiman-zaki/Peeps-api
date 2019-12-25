@@ -29,7 +29,7 @@ class SuperviseGroupworks(Resource):
             '_id':False,'role':True,
         })
         
-        if role['role'] != 1:
+        if role['role'] == 2:
             abort(400,message = 'User is not a supervsior')
 
         supervised = db.groupworks.find(

@@ -1,4 +1,4 @@
-from pymongo import MongoClient
+from pymongo import MongoClient, ReturnDocument, InsertOne, DeleteMany, ReplaceOne, UpdateOne
 from flask_jwt_extended import (
     JWTManager, jwt_required, create_access_token,
     get_jwt_identity,decode_token,create_refresh_token,jwt_refresh_token_required,
@@ -116,33 +116,6 @@ class SupervisorGroupworkTemplate(Resource):
           
         )
 
-        '''template = db.courses.aggregate([
-            {
-                '$match':{
-                    'code':code,
-            }},
-            {'$unwind':'$templates'},
-            {
-                '$project':{
-                    '_id':False,
-                    'template':{
-                        '$filter':{
-                            'input':'$templates.template',
-                            'as':'template',
-                            'cond':{
-                                '$and':[
-                                    {'$eq':['$$template._id',ObjectId(template_id)],},
-                                    
-                                ]    
-                            }
-                        }
-                    }
-                }
-            }
-       
-        ])
-        template = list(template)[0]['template']'''
-
         if data is not None:
             if len(data) > 0:    
                 return Response(
@@ -158,6 +131,17 @@ class SupervisorGroupworkTemplate(Resource):
         current_user = get_jwt_identity()
         data = request.json
         data['_id'] = ObjectId()
+        for assignments in data['assignments']:
+            if assignments['_id'] is "":
+                assignments['_id'] = ObjectId()
+            else:
+                assignments['_id'] = ObjectId(assignments['_id'])
+            for task in assignments['tasks']:
+                if task['_id'] is "":
+                    task['_id'] = ObjectId()
+                else:
+                    task['_id'] = ObjectId(task['_id'])
+                     
         if db.courses.find(
             {'code':code,'templates.supervisor':current_user}
         ).count() > 0:
@@ -181,6 +165,39 @@ class SupervisorGroupworkTemplate(Resource):
                     }
                 }
             })
+
+    @jwt_required
+    def put(self,code):
+        current_user = get_jwt_identity()
+        data = request.json
+        
+        data['_id'] = ObjectId(data['_id'])
+        for assignments in data['assignments']:
+            if assignments['_id'] is "":
+                assignments['_id'] = ObjectId()
+            else:
+                assignments['_id'] = ObjectId(assignments['_id'])
+            for task in assignments['tasks']:
+                if task['_id'] is "":
+                    task['_id'] = ObjectId()
+                else:
+                    task['_id'] = ObjectId(task['_id'])
+
+
+
+        db.courses.update_one(
+            {'code':code,'templates.supervisor':current_user},
+            {'$pull':{'templates.$.template':{
+                    '_id':data['_id']
+                }}}
+        )
+
+        db.courses.update_one(
+            {'code':code,'templates.supervisor':current_user},
+            {'$addToSet':{
+                'templates.$.template':data
+            }}
+        )
 
 
 

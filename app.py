@@ -19,9 +19,10 @@ import config
 
 from main import app, jwt , api , socketio
 from resources import auth,users,groupworks,assignments,inbox,stash,groupwork_socket,forum,timeline,question,supervisor,courses
-from resources_v2 import groupworksv2 , assignmentsv2
+'''
+TODO: migrate to mongoengine 
 
-
+'''
 @jwt.expired_token_loader
 def expired_token_callback(expired_token):
     token_type = expired_token['type']
@@ -72,7 +73,7 @@ def connect():
 
 #Peeps API
 
-#Authtentication API
+#Authtentication API 
 
 api.add_resource(auth.Activate, '/api/auth/activate')
 api.add_resource(auth.ActivateURL, '/api/auth/confirm/<token>')
@@ -81,6 +82,7 @@ api.add_resource(auth.TokenRefresh, '/api/auth/refresh')
 api.add_resource(auth.Register, '/api/auth/register')
 #Users API
 api.add_resource(users.SearchUser,'/api/users/search')
+api.add_resource(users.Users,'/api/users')
 
 #User API
 api.add_resource(inbox.ReplyInvitationInbox, '/api/user/inbox/reply_invitation')
@@ -93,20 +95,24 @@ api.add_resource(users.ActiveGroupworks, '/api/user/groupworks')
 api.add_resource(users.UserAssignments,'/api/user/assignments')
 
 #Groupworks API
-api.add_resource(groupworksv2.Groupworks, '/api/groupworks')
-api.add_resource(groupworksv2.GroupworksSearch, '/api/groupworks/search')
+api.add_resource(groupworks.Groupworks, '/api/groupworks')
+api.add_resource(groupworks.GroupworksSearch, '/api/groupworks/search')
 #Requires Group Id 
-api.add_resource(groupworksv2.GroupworkProfileImage, '/api/groupworks/<group_id>/picture')
-api.add_resource(groupworksv2.Groupwork, '/api/groupworks/<group_id>')
-api.add_resource(groupworksv2.Members, '/api/groupworks/<group_id>/members')
-api.add_resource(groupworksv2.Roles, '/api/groupworks/<group_id>/roles')
+api.add_resource(groupworks.GroupworkProfileImage, '/api/groupworks/<group_id>/picture')
+api.add_resource(groupworks.Groupwork, '/api/groupworks/<group_id>')
+api.add_resource(groupworks.GroupworkTemplateRevision ,'/api/groupworks/<group_id>/template/update')
+api.add_resource(groupworks.Members, '/api/groupworks/<group_id>/members')
+api.add_resource(groupworks.Roles, '/api/groupworks/<group_id>/roles')
 api.add_resource(stash.Notes,'/api/groupworks/<group_id>/notes')
-api.add_resource(groupworksv2.Requests,'/api/groupworks/<group_id>/requests')
+api.add_resource(groupworks.Requests,'/api/groupworks/<group_id>/requests')
 api.add_resource(assignments.Assignments, '/api/groupworks/<group_id>/assignments')
 api.add_resource(assignments.AssignmentDelete, '/api/groupworks/<group_id>/assignments/delete')
 api.add_resource(assignments.AssignmentStatus, '/api/groupworks/<group_id>/assignments/status')
+api.add_resource(timeline.AssignmentTimeline,'/api/groupworks/<group_id>/<assignment_id>/contributions')
+
 api.add_resource(timeline.Timeline,'/api/groupworks/<group_id>/timelines')
 api.add_resource(stash.References,'/api/groupworks/<group_id>/references')
+api.add_resource(groupworks.Complaints, '/api/groupworks/<group_id>/complaints')
 api.add_resource(assignments.AssignmentsUserPoint, '/api/groupworks/<group_id>/assignments/point')
 api.add_resource(stash.PublicReferences,'/api/groupworks/<group_id>/references/public')
 
@@ -114,10 +120,15 @@ api.add_resource(stash.PublicReferences,'/api/groupworks/<group_id>/references/p
 api.add_resource(assignments.Assignment, '/api/groupworks/<assignment_id>')
 api.add_resource(assignments.Tasks,'/api/groupworks/<assignment_id>/tasks')
 api.add_resource(assignments.PeerReview,'/api/groupworks/<assignment_id>/peer-review')
-
 api.add_resource(assignments.TaskStatus,'/api/groupworks/<assignment_id>/tasks/status')
 api.add_resource(assignments.TaskAssignTo, '/api/groupworks/<assignment_id>/tasks/requests')
+
+#requireds assignmentId and taskId
 api.add_resource(assignments.Task, '/api/groupworks/<assignment_id>/<task_id>/task')
+api.add_resource(assignments.TaskItems, '/api/groupworks/<assignment_id>/<task_id>/task/items')
+api.add_resource(assignments.TaskReviews, '/api/groupworks/<assignment_id>/<task_id>/task/reviews')
+api.add_resource(assignments.TaskReviewsApproval, '/api/groupworks/<assignment_id>/<task_id>/task/reviews/approval')
+api.add_resource(assignments.TaskSubmittedDate, '/api/groupworks/<assignment_id>/<task_id>/task/accepted_date')
 
  
 #Forum API

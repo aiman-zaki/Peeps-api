@@ -28,6 +28,31 @@ def allowed_file(filename):
 def fileExtension(filename):
     return filename.rsplit('.',1)[1].lower()
 
+def if_admin(current_user):
+
+    user = db.users.find_one({
+        'emai':current_user,
+    })
+    if user['role'] == 0 :
+        return True
+    else:
+        return False
+
+
+
+class Users(Resource):
+    @jwt_required
+    def get(self): 
+        data = db.users.find({},{'_id':True,'profile':True,'active_group':True,'email':True,'role':True})
+
+        return Response(
+            json_util.dumps(data),
+            mimetype='application/json'
+        )
+
+        
+        
+
 class ProfileImage(Resource):
     @jwt_required
     def post(self):
