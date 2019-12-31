@@ -66,19 +66,6 @@ def post_task_init(groupwork_id,assignment_id):
         }
     )
 
-    #Initial Timeline
-    db.timelines.update_one(
-        {
-            'group_id':groupwork_id,
-        },{
-            '$addToSet':{
-                'contributions':{
-                    'assignment_id':assignment_id
-                }
-            }
-        },upsert=True
-    )
-
 
 def get_template(course,template_id):
     data = db.courses.aggregate([
@@ -584,8 +571,10 @@ class Requests(Resource):
             {'requests': True, '_id': False}
         )
 
+        print(data)
+
         return Response(
-            json_util.dumps(data),
+            json_util.dumps(data['requests']),
             mimetype="application/json",
         )
 
@@ -640,3 +629,33 @@ class Requests(Resource):
                 }
             })
 
+            assignments = db.groupworks.find_one(
+                {'_id':ObjectId(group_id)},
+                {'assignments':True,'_id':False}
+            )
+
+            for assignment in assignments['assignments']:
+                db.peer_review.update_one({
+                    'assignment_id':assignment['_id']
+                },{
+                    '$addToSet':{
+                        'points':{
+                            'member':email,
+                            'points':50
+                        }
+                    }
+                })
+
+                db.peer_review.update_one({
+                    'assignment_id':assignment['_id']
+                },{
+                    '$addToSet':{
+                        'reviews':{
+                            'reviewer':email,
+                            'reviewed':[]
+                        }
+                    }
+                })
+
+
+          

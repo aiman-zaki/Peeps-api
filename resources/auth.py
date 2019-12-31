@@ -1,4 +1,4 @@
-from pymongo import MongoClient
+from pymongo import MongoClient 
 from flask_jwt_extended import (
     JWTManager, jwt_required, create_access_token,
     get_jwt_identity,decode_token,create_refresh_token,jwt_refresh_token_required,
@@ -15,6 +15,9 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import config
 from main import db , mail
 from bson.json_util import dumps, ObjectId
+
+datetimestring = str(datetime.datetime.now())
+
 class Register(Resource):
     def post(self):
         email = request.json['email']
@@ -40,6 +43,8 @@ class Register(Resource):
                 },
                 'role':2,
                 'active_group':[],
+                'created_date':datetimestring,
+                'last_logined':''
                 })
             #Initial Inbox 
             db.inbox.insert_one({
@@ -94,6 +99,7 @@ class Login(Resource):
         access_token = create_access_token(email)
         refresh_token = create_refresh_token(email)
         data = {'access_token':access_token,'refresh_token':refresh_token}
+        db.users.update_one({'email':email},{'$set':{'last_logined':datetime.datetime.utcnow()}})
         return jsonify(data)
 
 class TokenRefresh(Resource):

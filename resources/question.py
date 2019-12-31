@@ -30,6 +30,7 @@ class InitQuestions(Resource):
 class Questions(Resource):
     def get(self):
         question = db.questions.find()
+        print(question)
         return Response(
             json_util.dumps(question),
             mimetype='application/json'

@@ -29,7 +29,6 @@ def fileExtension(filename):
     return filename.rsplit('.',1)[1].lower()
 
 def if_admin(current_user):
-
     user = db.users.find_one({
         'emai':current_user,
     })
@@ -43,8 +42,7 @@ def if_admin(current_user):
 class Users(Resource):
     @jwt_required
     def get(self): 
-        data = db.users.find({},{'_id':True,'profile':True,'active_group':True,'email':True,'role':True})
-
+        data = db.users.find({},{'_id':True,'profile':True,'active_group':True,'email':True,'role':True,'created_date':True})
         return Response(
             json_util.dumps(data),
             mimetype='application/json'
@@ -83,7 +81,7 @@ class Profile(Resource):
     def get(self):
         current_user = get_jwt_identity()
         user = db.users.find_one(
-            {'email': current_user},{'_id':True,'profile':True,'active_group':True,'email':True,'role':True}
+            {'email': current_user},{'_id':True,'profile':True,'active_group':True,'email':True,'role':True,'created_date':True}
         )
         return Response(
             json_util.dumps(user),

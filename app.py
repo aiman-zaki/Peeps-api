@@ -18,7 +18,7 @@ from werkzeug.serving import run_simple
 import config
 
 from main import app, jwt , api , socketio
-from resources import auth,users,groupworks,assignments,inbox,stash,groupwork_socket,forum,timeline,question,supervisor,courses
+from resources import auth,users,groupworks,assignments,inbox,stash,groupwork_socket,forum,timeline,question,supervisor,courses,stash,stats
 '''
 TODO: migrate to mongoengine 
 
@@ -149,6 +149,9 @@ api.add_resource(courses.SupervisorGroupworkTemplate,'/api/supervisor/<code>/tem
 api.add_resource(courses.SearchSupervisorGroupworkTemplate, '/api/courses/<code>/<supervisor>')
 api.add_resource(courses.Courses, '/api/courses')
 api.add_resource(courses.Course,'/api/courses/<code>')
+
+#stats
+api.add_resource(stats.UsersActivePerWeek,'/api/stats/users/perweek')
 
 #Socket-IO Namespace
 socketio.on_namespace(groupwork_socket.GroupChat('/group_chat'))

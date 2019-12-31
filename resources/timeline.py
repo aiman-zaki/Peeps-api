@@ -49,7 +49,6 @@ class Timeline(Resource):
 
 class AssignmentTimeline(Resource): 
     def get(self,group_id,assignment_id):
-      
         data = db.timelines.aggregate(
             [
                 {'$match': 

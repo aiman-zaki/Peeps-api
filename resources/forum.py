@@ -23,15 +23,17 @@ import PIL.Image
 class Forum(Resource):
     def get(self,course):
 
-        dicussions = db.collaborate.find_one(
+        discussions = db.collaborate.find_one(
             {'course':course},
             {'_id':False,'discussions':True}
         )
-        print(dicussions)
-        if dicussions is not None:
-            if 'dicussions' in dicussions:
+        if discussions is not None:
+            print('tak none')
+            if 'discussions' in discussions:
+                print('tak none jugak')
+
                 return Response(
-                json_util.dumps(dicussions['discussions']),
+                json_util.dumps(discussions['discussions']),
                 mimetype='application/json'
 
             )
@@ -75,7 +77,7 @@ class Discussion(Resource):
             {'course':course,'discussions._id':ObjectId(discussion)},
             {'$addToSet':{
                 'discussions.$.replies':reply
-            }}
+            }},upsert=True
         )
 
     @jwt_required
