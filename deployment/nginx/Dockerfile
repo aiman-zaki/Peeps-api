@@ -37,9 +37,6 @@ RUN ln -s /usr/local/bin/docker-entrypoint.sh / && \
 
 COPY VERSION /
 
-RUN celery worker -D -A celery_config.celery  && \
-    celery beat --detach -A celery_config.celery
-
 WORKDIR ${HOME}
 ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["supervisord"]
