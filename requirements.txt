@@ -3,6 +3,7 @@ aniso8601==7.0.0
 asn1crypto==0.24.0
 astroid==2.2.5
 autopep8==1.4.4
+Babel==2.8.0
 beautifulsoup4==4.7.1
 billiard==3.6.1.0
 blinker==1.4
@@ -23,6 +24,8 @@ Flask-JWT-Extended==3.20.0
 Flask-Mail==0.9.1
 Flask-RESTful==0.3.7
 Flask-SocketIO==4.2.1
+flower==0.9.3
+gevent==1.4.0
 greenlet==0.4.15
 gunicorn==19.9.0
 idna==2.8
@@ -65,6 +68,7 @@ selenium==3.141.0
 six==1.11.0
 sortedcontainers==2.1.0
 soupsieve==1.9.2
+tornado==5.1.1
 typed-ast==1.4.0
 urllib3==1.24.1
 uWSGI==2.0.18
