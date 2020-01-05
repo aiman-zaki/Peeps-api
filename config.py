@@ -17,3 +17,6 @@ JWT_SECRET_KEY= 'imstraight'
 UPLOAD_FOLDER = '/web/public/users/'
 UPLOAD_GROUPWORK_FOLDER = '/web/public/groupworks/'
 UPLOAD_USERS_FOLDER = '/web/public/users/'
+
+PROPAGATE_EXCEPTIONS = True
+MONGO_CONNECT = False

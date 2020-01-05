@@ -17,14 +17,18 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.serving import run_simple
 import config
 from bson import ObjectId
+
 app = Flask(__name__,static_url_path='',static_folder='web/static',template_folder='web/templates')
-app.config.from_object('config')
 api = Api(app)
 CORS(app)
 mail = Mail(app)
 jwt = JWTManager(app)
 socketio = SocketIO(app)
-app.config['PROPAGATE_EXCEPTIONS'] = True
 client = MongoClient("mongodb://%s:%s@localhost:27017/" % ("admin","password"))
 db = client.api
 socketio = SocketIO(app)
+app.config.from_object('config')
+
+def mongodb_connect():
+    client = MongoClient("mongodb://%s:%s@localhost:27017/" % ("admin","password"))
+    return client.api

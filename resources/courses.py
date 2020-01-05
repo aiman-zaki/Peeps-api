@@ -21,7 +21,11 @@ from bson.json_util import dumps, ObjectId
 
 class Courses(Resource):
     def get(self):
-        pass
+        courses = db.courses.find()
+        return Response(
+            list(courses),
+            mimetype='application/json'
+        )
     def post(self):
         data = request.json 
         db.courses.insert_one(data)
