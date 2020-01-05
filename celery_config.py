@@ -16,15 +16,12 @@ class Config:
 
     }
     celery_broker_url = "mongodb://%s:%s@localhost:27017/" % ("admin","password")
-
-    #celery_broker_url = 'redis://localhost:6379/0'
-    #celery_result_backend = 'redis://localhost:6379/0'
     beat_schedule = {
         'send-email-notifications': {
             'task': 'celery_config.active_user_week',
             'schedule': 
                 crontab(minute='59',
-                    hour='15', day_of_week='sun') ,
+                    hour='12', day_of_week='sun') ,
         },
     }
     worker_hijack_root_logger = False
