@@ -2,7 +2,10 @@ FROM nginx:latest
 
 ENV HOME=/opt/repo
 
-RUN apt-get update && apt-get install -y supervisor uwsgi python3 python3-pip procps vim 
+RUN apt-get update && apt-get install -y supervisor uwsgi python3 python3-pip procps vim libssl-dev
+
+RUN CFLAGS="-I/usr/local/opt/openssl/include" LDFLAGS="-L/usr/local/opt/openssl/lib" \
+  UWSGI_PROFILE_OVERRIDE=ssl=true pip3 install uwsgi -Iv
 
 COPY ./requirements.txt /tmp/
 
