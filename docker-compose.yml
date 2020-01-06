@@ -19,7 +19,7 @@ services:
       MONGO_INITDB_ROOT_USERNAME: admin
       MONGO_INITDB_ROOT_PASSWORD: password
     volumes:
-      - ./localFolder:/data/db
+      - ~/mongodb:/data/db
     container_name: mongodb
 
   mongo-express:
