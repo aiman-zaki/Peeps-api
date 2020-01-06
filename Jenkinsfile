@@ -3,17 +3,19 @@ node {
         checkout scm
     }
     stage('docker build'){
-        def version = readFile('VERSION')        
-        def customImage = docker.build('peeps:'+version,' -f deployment/nginx/Dockerfile .')
+        sh '''#!/bin/bash
+            eval $(cat .env | sed 's/^/export /')
+            docker build -t peeps:`echo $APP_VERSION` -f deployment/nginx/Dockerfile .
+        '''
 
     }
     stage('docker update'){
-        def version = readFile('VERSION')
-        sh """#!/bin/bash
+        sh '''#!/bin/bash
             docker rm -f peeps
             docker-compose stop
-            APP_VERSION=$version docker-compose up -d --no-recreate
-        """
+            eval $(cat .env | sed 's/^/export /')
+            APP_VERSION=`echo $APP_VERSION` docker-compose up -d --no-recreate
+        '''
     }
 
 }
