@@ -12,7 +12,7 @@ node {
         sh """#!/bin/bash
             docker rm -f peeps
             docker-compose stop
-            APP_VERSION=${version} docker-compose up -d --no-recreate
+            APP_VERSION=$version docker-compose up -d --no-recreate
         """
     }
 
