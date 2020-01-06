@@ -10,10 +10,8 @@ node {
     stage('docker update'){
         def version = readFile('VERSION')
         sh """#!/bin/bash
-            export APP_VERSION = ${version}
-            
             docker rm -f peeps
-            docker-compose up -d 
+            APP_VERSION = ${version} docker-compose up -d 
         """
     }
 
