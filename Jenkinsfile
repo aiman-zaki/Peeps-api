@@ -11,6 +11,7 @@ node {
         def version = readFile('VERSION')
         sh """#!/bin/bash
             docker rm -f peeps
+            docker-compose stop
             APP_VERSION=${version} docker-compose up -d --no-recreate
         """
     }
