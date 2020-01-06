@@ -2,12 +2,13 @@ version: "3"
 
 services:
   flask_app:
-    build: 
-      context: .
-      dockerfile: "./deployment/nginx/Dockerfile"
+    image: peeps:${APP_VERSION}
+    restart: always
     ports:
-      - "8080:8080"
-    network_mode: host
+      - 8080:8080
+    depends_on:
+      - mongo
+      - mongo-express
 
   mongo:
     image: mongo
@@ -19,6 +20,7 @@ services:
       MONGO_INITDB_ROOT_PASSWORD: password
     volumes:
       - ./localFolder:/data/db
+    container_name: mongodb
 
   mongo-express:
     image: mongo-express
@@ -28,3 +30,4 @@ services:
     environment:
       ME_CONFIG_MONGODB_ADMINUSERNAME: admin
       ME_CONFIG_MONGODB_ADMINPASSWORD: password
+    container_name: mongo-express
