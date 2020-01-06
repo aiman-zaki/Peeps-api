@@ -35,6 +35,19 @@ def expired_token_callback(expired_token):
 @app.route('/')
 def index():
     return render_template('index.html')
+
+@app.route('/downloads')
+def downloads():
+    return render_template('downloads.html')
+
+@app.route('/downloads/<path:filename>', methods=['GET','POST'])
+def download(filename):
+    DOWNLOAD_PATH = app.root_path+"/web/downloads/"+filename
+    return send_file(DOWNLOAD_PATH)
+
+
+
+
 @app.route('/client')
 def testsocketio():
     return render_template('test-socketio.html')
