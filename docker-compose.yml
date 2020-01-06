@@ -9,7 +9,6 @@ services:
     depends_on:
       - mongo
       - mongo-express
-    container_name: peeps-api
 
   mongo:
     image: mongo
