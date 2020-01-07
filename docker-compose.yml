@@ -9,7 +9,6 @@ services:
     depends_on:
       - mongo
       - mongo-express
-
   mongo:
     image: mongo
     restart: always
@@ -19,8 +18,16 @@ services:
       MONGO_INITDB_ROOT_USERNAME: admin
       MONGO_INITDB_ROOT_PASSWORD: password
     volumes:
-      - ~/mongodb:/data/db
+      - /var/run/docker.sock:/var/run/docker.sock
+      - type: bind
+        source: ~/docker/volumes/mongodb
+        target: /data/db
+
     container_name: mongodb
+    deploy:
+      replicas: 1
+      placement:
+        constraints: [node.rol == manager]
 
   mongo-express:
     image: mongo-express
