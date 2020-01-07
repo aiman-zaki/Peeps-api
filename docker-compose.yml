@@ -27,7 +27,7 @@ services:
     deploy:
       replicas: 1
       placement:
-        constraints: [node.rol == manager]
+        constraints: [node.role == manager]
 
   mongo-express:
     image: mongo-express
