@@ -34,12 +34,11 @@ def expired_token_callback(expired_token):
 
 @app.route('/')
 def index():
-    print(socket.gethostname())
-    return render_template('index.html')
+    return render_template('index.html',)
 
 @app.route('/downloads')
 def downloads():
-    return render_template('downloads.html')
+    return render_template('downloads.html',hostname=socket.gethostname())
 
 @app.route('/downloads/<path:filename>', methods=['GET','POST'])
 def download(filename):
