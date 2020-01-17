@@ -14,7 +14,7 @@ node {
             docker rm -f peeps
             docker-compose stop
             eval $(cat .env | sed 's/^/export /')
-            APP_VERSION=`echo $APP_VERSION` docker-compose up -d --no-recreate
+            docker stack deploy -c docker-compose.yml peeps
         '''
     }
 
