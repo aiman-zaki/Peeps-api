@@ -23,8 +23,8 @@ from bson.json_util import dumps, ObjectId
 from datetime import datetime
 
 current_user = "aiman@gmail.com"
-group_id = "5dd1f98694cb31f1be12da8b"
-assignment_id = "5dd21bf51afe92a877c32369"
+group_id = "5e1dc91a3cabb4a2982967f3"
+assignment_id = "5e1e6d5c632a8069b727784c"
 
 def convert(datetime_str):
     datetime_str = datetime_str.split('.')[0]
@@ -44,14 +44,36 @@ def convert(datetime_str):
     [assignment done pass duedate][-5]
 """
 
+def create_action(data):
+    return 5
+
+def receive_action(data):
+    return 4
+
+def update_action(data):
+    return 3
+
+def delete_action(data):
+    return 1
+
+def request_action(data):
+    return 2
+
+def accept_action(data):
+    return 1
+
+def deny_action(data):
+    return 5
+
+
 def calculate_assignment_leader_mark(current_user,group_id,assignment_id):
     data = db.timelines.aggregate([
-     {
+        {
         '$match':{
             'group_id':ObjectId(group_id),
+            },
         },
-     },
-     {
+        {
         '$project':{
             'contribution':{
                 '$filter':{
@@ -66,12 +88,12 @@ def calculate_assignment_leader_mark(current_user,group_id,assignment_id):
                 }
             },
             '_id':False
-         }
-     },{'$unwind':'$contribution'},
-     {'$project':{
+            }
+        },
+        {'$project':{
             'contribution':{
                 '$filter':{
-                    'input':'$contribution.data',
+                    'input':'$contribution',
                     'as':'data',
                     'cond':{
                         '$and':[
@@ -82,16 +104,36 @@ def calculate_assignment_leader_mark(current_user,group_id,assignment_id):
                 }
             },
             '_id':False
-         }}
-     ])
+            }}
+        ])
 
     data = list(data)[0]
+
+    #looop loop like dumb dumb
+
+    score = 0.00
+
+    for contribution in data['contribution']:
+        if(contribution['what'] ==  0):
+            score = score + create_action(contribution['what'])
+        elif(contribution['what'] ==  1):
+            score = score + receive_action(contribution['what'])
+        elif(contribution['what'] ==  2):
+            score = score + update_action(contribution['what'])
+        elif(contribution['what'] ==  3):
+            score = score + delete_action(contribution['what'])
+        elif(contribution['what'] ==  4):
+            score = score + request_action(contribution['what'])
+        elif(contribution['what'] ==  5):
+            score = score + accept_action(contribution['what'])
+        elif(contribution['what'] ==  6):
+            score = score + deny_action(contribution['what'])
+            
     
 
-    return data
+    return {'score':score}
 
 print(json_util.dumps(calculate_assignment_leader_mark(current_user,group_id,assignment_id)))
-
 
 """
     USERS PEERS MARKING SCHEME

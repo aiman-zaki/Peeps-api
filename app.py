@@ -18,7 +18,7 @@ from werkzeug.serving import run_simple
 import config
 
 from main import app, jwt , api , socketio
-from resources import auth,users,groupworks,assignments,inbox,stash,groupwork_socket,forum,timeline,question,supervisor,courses,stash,stats
+from resources import auth,users,groupworks,assignments,inbox,stash,groupwork_socket,forum,timeline,question,supervisor,courses,stash,stats,notify
 '''
 TODO: migrate to mongoengine 
 
@@ -122,6 +122,7 @@ api.add_resource(assignments.Assignments, '/api/groupworks/<group_id>/assignment
 api.add_resource(assignments.AssignmentDelete, '/api/groupworks/<group_id>/assignments/delete')
 api.add_resource(assignments.AssignmentStatus, '/api/groupworks/<group_id>/assignments/status')
 api.add_resource(timeline.AssignmentTimeline,'/api/groupworks/<group_id>/<assignment_id>/contributions')
+api.add_resource(timeline.AssignmentUserOnyScore,'/api/groupworks/<group_id>/<assignment_id>/contributions/user')
 
 api.add_resource(timeline.Timeline,'/api/groupworks/<group_id>/timelines')
 api.add_resource(stash.References,'/api/groupworks/<group_id>/references')
@@ -133,6 +134,7 @@ api.add_resource(stash.PublicReferences,'/api/groupworks/<group_id>/references/p
 api.add_resource(assignments.Assignment, '/api/groupworks/<assignment_id>')
 api.add_resource(assignments.Tasks,'/api/groupworks/<assignment_id>/tasks')
 api.add_resource(assignments.PeerReview,'/api/groupworks/<assignment_id>/peer-review')
+api.add_resource(assignments.PeerReviewScoreAssignment,'/api/groupworks/<assignment_id>/peer_review/user')
 api.add_resource(assignments.TaskStatus,'/api/groupworks/<assignment_id>/tasks/status')
 api.add_resource(assignments.TaskAssignTo, '/api/groupworks/<assignment_id>/tasks/requests')
 
@@ -166,10 +168,16 @@ api.add_resource(courses.Course,'/api/courses/<code>')
 #stats
 api.add_resource(stats.UsersActivePerWeek,'/api/stats/users/perweek')
 
+#notification
+
+api.add_resource(notify.SupervisorNotified,'/api/user/notify/supervisor/notified')
+
+
 #Socket-IO Namespace
 socketio.on_namespace(groupwork_socket.GroupChat('/group_chat'))
 socketio.on_namespace(groupwork_socket.Timeline('/timeline'))
 socketio.on_namespace(groupwork_socket.Collaborate('/collaborate'))
+
  
 if __name__ == "__main__":
     socketio.run(app,port=5000,host="0.0.0.0")

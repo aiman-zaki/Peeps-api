@@ -17,6 +17,7 @@ from bson import json_util
 from main import db, app
 from bson.json_util import dumps, ObjectId
 
+datetimestring = str(datetime.datetime.now())
 
 
 
@@ -218,21 +219,43 @@ class AssignmentDelete(Resource):
         )
 
 class AssignmentStatus(Resource):
+    @jwt_required
     def put(self,group_id):
-        
+        current_user = get_jwt_identity()
         status = request.json['status']
-        assingment_id = request.json['assignment_id']
+        assignment_id = request.json['assignment_id']
+        assignment_link = request.json['assignment_link']
         db.groupworks.update_one(
             {
                 '_id':ObjectId(group_id),
-                'assignments._id':ObjectId(assingment_id),
+                'assignments._id':ObjectId(assignment_id),
             },
             {
                 '$set':{
                     'assignments.$.status':status,
+                    'assignments.$.assignment_link':assignment_link,
+                    'assignments.$.submitted_date':datetimestring
+                }
+            },upsert=True
+        )
+
+        supervisor = db.groupworks.find_one(
+            {'_id':ObjectId(group_id)},
+            {'_id':False,'supervisor':True}
+        )
+
+        db.notify.update_one({
+            'email':supervisor['supervisor']
+        },{
+            '$addToSet':{
+                'supervisor_notify': {
+                    '_id':ObjectId(),
+                    'title':'Assignment Submitted!',
+                    'body':'A student submit your assignment at'+datetimestring,
+                    'notified':False,
                 }
             }
-        )
+        },upsert=True)
         
         
 
@@ -270,6 +293,7 @@ class Tasks(Resource):
 
         task = request.json
         task['_id'] = ObjectId()
+        task['accepted_date'] = None
         task['seq'] = countTaskSeq()
         db.tasks.update_one(
             {
@@ -559,7 +583,7 @@ class PeerReview(Resource):
     @jwt_required
     def get(self, assignment_id):
         current_user = get_jwt_identity()
-        data = db.peer_review.find_one(
+        '''data = db.peer_review.find_one(
             {'assignment_id':ObjectId(assignment_id),'reviews.reviewer': current_user},
             {'_id':False,'reviews.$':True}
         )
@@ -572,56 +596,86 @@ class PeerReview(Resource):
             return Response(
                 json_util.dumps({'reviewer':current_user,'reviewed':[]}),
                 mimetype='application/json'
-            )
+            )'''
+
+        return []
         
     @jwt_required
     def post(self, assignment_id):
         current_user = get_jwt_identity()
         answer = request.json
-        data = db.peer_review.aggregate([
+        for i in answer['answers']:
+            i['question_id'] = ObjectId(i['question_id'])
+
+        if db.peer_review.find(
             {
-                '$match': {
-                    'assignment_id': ObjectId(assignment_id)
-                }
-            }, {
-                '$project': {
-                    'index': {
-                        '$indexOfArray': ['$reviews.reviewer',current_user]
+                '$and':[
+                    {'assignment_id':ObjectId(assignment_id),},
+                    {'reviews.reviewee':answer['reviewee']},
+                    {'reviews.reviewer':current_user}
+                ]
+            }
+        ).count()== 0:
+            db.peer_review.update_one(
+                {'assignment_id': ObjectId(assignment_id)},
+                {'$addToSet': {
+                    'reviews': answer
+                }}, upsert=True,
+            )
+        else:
+            print("already reviewd")
+        
+
+        db.peer_review.update_one(
+            {'assignment_id':ObjectId(assignment_id)},
+            {'$addToSet':{
+                'reviews':answer
+            }}
+        )
+
+
+class PeerReviewScoreAssignment(Resource):
+    def get(self,assignment_id):
+        current_user = "aiman@gmail.com"
+
+        data = db.peer_review.aggregate(
+            [
+                {
+                    '$match': {
+                        '$and': 
+                        [
+                            {'assignment_id': ObjectId(assignment_id)}
+                        ],
+                }, },
+                {
+                    '$project': {
+                        'reviews': {
+                            '$filter': {
+                                'input': '$reviews',
+                                'as': 'review',
+                                'cond': {'$eq': ['$$review.reviewee', current_user]}
+                            }
+                        }
                     }
-                }
-            }])
+                },
+            ],
+        )
 
         data = list(data)
-        index = data[0]['index']
-        for i in answer['answers']:
-            i['_id'] = ObjectId(i['_id'])
 
-        if index > -1:
-            if db.peer_review.find(
-                {
-                    'assignment_id':ObjectId(assignment_id),
-                    'reviews.'+str(index)+'.reviewed.reviewee':answer['reviewee']
-                }
-            ).count()== 0:
-            
-                db.peer_review.update_one(
-                    {'assignment_id': ObjectId(assignment_id)},
-                    {'$addToSet': {
-                        'reviews.'+str(index)+'.reviewed': answer
-                    }}, upsert=True,
-                )
-            else:
-                print("already reviewd")
-        else:
-            db.peer_review.update_one(
-                {'assignment_id':ObjectId(assignment_id)},
-                {'$addToSet':{
-                    'reviews':{
-                        'reviewer':answer['reviewer'],
-                        'reviewed':[
-                            answer
-                        ]
-                    }
-                }}
-            )
+        total_marks = {}
+        total_marks['counts'] = 0
+        for reviews in data[0]['reviews']:
+            total_marks['counts'] = total_marks['counts']+1
+            for answer in reviews['answers']:
+                if str(answer['question_id']) in total_marks:
+                    total_marks[str(answer['question_id'])] = total_marks[str(answer['question_id'])] + (answer['answer_index']+1)
+                else:
+                    total_marks[str(answer['question_id'])] = (answer['answer_index']+1)
+
+        return Response(
+            json_util.dumps(total_marks),
+            mimetype='application/json'
+        )
+
 

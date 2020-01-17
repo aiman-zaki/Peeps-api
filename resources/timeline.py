@@ -20,6 +20,92 @@ from main import db, app
 from bson.json_util import dumps, ObjectId
 import PIL.Image
 
+def create_action(data):
+    return 5
+
+def receive_action(data):
+    return 4
+
+def update_action(data):
+    return 3
+
+def delete_action(data):
+    return 1
+
+def request_action(data):
+    return 2
+
+def accept_action(data):
+    return 1
+
+def deny_action(data):
+    return 5
+
+def calculate_assignment_score(current_user,group_id,assignment_id):
+    data = db.timelines.aggregate([
+        {
+        '$match':{
+            'group_id':ObjectId(group_id),
+            },
+        },
+        {
+        '$project':{
+            'contribution':{
+                '$filter':{
+                    'input':'$contributions',
+                    'as':'contribute',
+                    'cond':{
+                        '$and':[
+                            {'$eq':['$$contribute.assignment_id',ObjectId(assignment_id)],},
+                            
+                        ]    
+                    }
+                }
+            },
+            '_id':False
+            }
+        },
+        {'$project':{
+            'contribution':{
+                '$filter':{
+                    'input':'$contribution',
+                    'as':'data',
+                    'cond':{
+                        '$and':[
+                            {'$eq':['$$data.who',current_user],},
+                            
+                        ]    
+                    }
+                }
+            },
+            '_id':False
+            }}
+        ])
+
+    data = list(data)[0]
+
+    score = 0.00
+
+    for contribution in data['contribution']:
+        if(contribution['what'] ==  0):
+            score = score + create_action(contribution['what'])
+        elif(contribution['what'] ==  1):
+            score = score + receive_action(contribution['what'])
+        elif(contribution['what'] ==  2):
+            score = score + update_action(contribution['what'])
+        elif(contribution['what'] ==  3):
+            score = score + delete_action(contribution['what'])
+        elif(contribution['what'] ==  4):
+            score = score + request_action(contribution['what'])
+        elif(contribution['what'] ==  5):
+            score = score + accept_action(contribution['what'])
+        elif(contribution['what'] ==  6):
+            score = score + deny_action(contribution['what'])
+            
+
+    return {'score':score, 'contributions': data['contribution']}
+
+
 
 class Timeline(Resource):
     def get(self,group_id):
@@ -48,26 +134,28 @@ class Timeline(Resource):
         )
 
 class AssignmentTimeline(Resource): 
+    @jwt_required
     def get(self,group_id,assignment_id):
+        current_user = get_jwt_identity()
         data = db.timelines.aggregate(
-            [
-                {'$match': 
-                    {'group_id': ObjectId(group_id)},
-                },
-                {
-                    '$project': {
+        [
+            {'$match': 
+                {'group_id': ObjectId(group_id)},
+            },
+            {
+                '$project': {
 
-                        'contributions': {
-                            '$filter': {
-                                'input': '$contributions',
-                                'as': 'contribution',
-                                'cond': {'$eq': ['$$contribution.assignment_id', ObjectId(assignment_id)]}
-                            }
+                    'contributions': {
+                        '$filter': {
+                            'input': '$contributions',
+                            'as': 'contribution',
+                            'cond': {'$eq': ['$$contribution.assignment_id', ObjectId(assignment_id)]}
                         }
                     }
-                },
-                {'$unwind': '$contributions'},
-                {'$replaceRoot': {'newRoot': '$contributions'}}
+                }
+            },
+            {'$unwind': '$contributions'},
+            {'$replaceRoot': {'newRoot': '$contributions'}}
 
 
             ],
@@ -78,27 +166,22 @@ class AssignmentTimeline(Resource):
             mimetype='application/json'
         )
 
-class AssignmentScore(Resource):
-    def get(self,group_id,template_id):
-        
-        groupwork = db.groupworks.find_one({
-            '_id':ObjectId(group_id)
-        })
-        
-        groupworks = db.groupworks.find(
-            {
-                '$and':[
-                    
-                    {'template_id':ObjectId(template_id)}
-                ]                
-            }
+class AssignmentUserOnyScore(Resource):
+    @jwt_required
+    def get(self,group_id,assignment_id):
+        current_user = get_jwt_identity()
+        data = calculate_assignment_score(current_user,group_id,assignment_id)
+        return Response(
+            json_util.dumps(data),
+            mimetype='application/json'
         )
-        
-        groupwork = list(groupwork)
-        groupworks = list(groupworks)
+
         
     
         
 class TimelineCount(Resource):
     def get(self,group_id,count):
         pass
+
+
+
