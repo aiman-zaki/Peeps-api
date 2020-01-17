@@ -16,7 +16,7 @@ from flask_socketio import SocketIO, emit,ConnectionRefusedError
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.serving import run_simple
 import config
-
+import socket
 from main import app, jwt , api , socketio
 from resources import auth,users,groupworks,assignments,inbox,stash,groupwork_socket,forum,timeline,question,supervisor,courses,stash,stats,notify
 '''
@@ -34,6 +34,7 @@ def expired_token_callback(expired_token):
 
 @app.route('/')
 def index():
+    print(socket.gethostname())
     return render_template('index.html')
 
 @app.route('/downloads')
