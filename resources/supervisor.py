@@ -43,3 +43,26 @@ class SuperviseGroupworks(Resource):
             mimetype='application/json'
         )
         
+class GroupworkAnnouncements(Resource):
+    @jwt_required
+    def get(self,group_id):
+        data = db.groupworks.find_one({'_id':ObjectId(group_id)},{'_id':False,'supervisor_messages':True})
+        return Response(
+            json_util.dumps(data['supervisor_message'])
+        )
+
+    @jwt_required
+    def post(self,group_id):
+        data = request.json
+        db.groupworks.update_one({'_id':ObjectId(group_id)},{'$addToset':{
+            'supervisor_messages':data
+        }})
+
+
+class CreateGroupworkAnnouncement(Resource):
+    @jwt_required
+    def post(self):
+        data = request.json
+        db.groupworks.update_one({'_id':ObjectId(data['group_id'])},{'$addToset':{
+            'supervisor_messages':data
+        }})

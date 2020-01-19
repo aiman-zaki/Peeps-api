@@ -17,7 +17,15 @@ from werkzeug.datastructures import FileStorage
 from bson import json_util
 from main import db , app 
 from bson.json_util import dumps, ObjectId
+from datetime import datetime
+from .timeline import calculate_assignment_score
 import PIL.Image
+
+def convert_string_to_datetime(datetimestring):
+    date = "2020-01-15 09:42:09.436924"
+    date_format = "%Y-%m-%d %H:%M:%S.%f"
+
+    return datetime.strptime(datetimestring,date_format)
 
 def allowed_file(filename):
     ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
@@ -181,6 +189,110 @@ class ActiveGroupworks(Resource):
                 },
                 upsert=True
             )
+
+
+
+def calculatePeerReviewScore(data,current_user,assignment_id):
+        score = db.peer_review.aggregate(
+            [
+                {
+                    '$match': {
+                        '$and': 
+                        [
+                            {'assignment_id': ObjectId(assignment_id)}
+                        ],
+                }, },
+                {
+                    '$project': {
+                        'reviews': {
+                            '$filter': {
+                                'input': '$reviews',
+                                'as': 'review',
+                                'cond': {'$eq': ['$$review.reviewee', current_user]}
+                            }
+                        }
+                    }
+                },
+            ],
+        )
+        score = list(score)
+        for reviews in score[0]['reviews']:
+            data['score']['counts'] = data['score']['counts']+1
+            for answer in reviews['answers']:
+                if str(answer['question_id']) in data['score']:
+                    data['score'][str(answer['question_id'])] = data['score'][str(answer['question_id'])] + (answer['answer_index']+1)
+                else:
+                    data['score'][str(answer['question_id'])] = (answer['answer_index']+1)
+
+
+
+
+def calculateTaskState(data,current_user,assignment_id):
+    tasks = db.tasks.find_one({'assignment_id':assignment_id},{'_id':False,'tasks':True})
+    task_assigned = 0
+    task_submitted_before_due_date = 0
+    task_subbmited_after_due_date = 0
+    if len(tasks) != 0: 
+        for task in tasks['tasks']:
+            if task['assign_to'] == current_user:
+                task_assigned = task_assigned + 1
+                if task['accepted_date'] is not None:
+                    due_date = convert_string_to_datetime(task['due_date'])
+                    accepted_date = convert_string_to_datetime( task['accepted_date'])
+                    diff = due_date - accepted_date
+                    if diff.days > 0:
+                        task_submitted_before_due_date = task_submitted_before_due_date + 1
+                    else:
+                        task_subbmited_after_due_date= task_subbmited_after_due_date + 1
+                
+                
+
+    data['task_assigned'] = data['task_assigned'] + task_assigned
+    data['task_submitted_before_due_date'] = data['task_submitted_before_due_date'] + task_submitted_before_due_date
+    data['task_subbmited_after_due_date'] = data['task_subbmited_after_due_date'] + task_subbmited_after_due_date
+
+
+
+class GenerateAllTimeUserStats(Resource):
+    @jwt_required
+    def get(self):
+        #TODO Desperate time come retarded solution [obviously cpu intensive]
+        current_user = get_jwt_identity()
+        data = {}
+        data['score'] = {}
+        data['score']['counts'] = 0
+        data['task_assigned'] = 0
+        data['task_submitted_before_due_date'] = 0
+        data['task_subbmited_after_due_date'] = 0
+        data['assignment_lead'] = 0
+        data['accumulate_contribution_score'] = 0
+
+        groupworks_joined = db.groupworks.find(
+            {'members.email':current_user}
+        )
+
+        groupworks_joined = list(groupworks_joined)
+
+        data['groupworks_joined'] = len(groupworks_joined)
+
+        for groupworks in groupworks_joined:
+            for assignment in groupworks['assignments']:
+                calculateTaskState(data,current_user,assignment['_id'])
+                calculatePeerReviewScore(data,current_user,assignment['_id'])
+                data['accumulate_contribution_score'] = data['accumulate_contribution_score'] + calculate_assignment_score(current_user,groupworks['_id'],assignment['_id'])['score']
+                if assignment['leader'] == current_user:
+                    data['assignment_lead'] = data['assignment_lead']+1
+        
+        print(data)
+        return Response(
+            json_util.dumps(data),
+            mimetype='application/json'
+        )
+ 
+        
+
+
+
 
 
     

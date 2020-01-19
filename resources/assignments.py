@@ -69,57 +69,63 @@ class Assignments(Resource):
         return []
 
     def post(self, group_id):
-        _id = ObjectId()
-        assignment = request.json
-        db.groupworks.update_one(
-            {'_id': ObjectId(group_id)},
-            {'$push': {
-                'assignments': {
-                    '_id': _id,
-                    'title': assignment['title'],
-                    'description': assignment['description'],
-                    'leader': assignment['leader'],
-                    'total_marks': assignment['total_marks'],
-                    'created_date': assignment['created_date'],
-                    'due_date': assignment['due_date'],
-                    'status':assignment['status']
+        try:
+            _id = ObjectId()
+            assignment = request.json
+            db.groupworks.update_one(
+                {'_id': ObjectId(group_id)},
+                {'$push': {
+                    'assignments': {
+                        '_id': _id,
+                        'title': assignment['title'],
+                        'description': assignment['description'],
+                        'leader': assignment['leader'],
+                        'total_marks': assignment['total_marks'],
+                        'created_date': assignment['created_date'],
+                        'due_date': assignment['due_date'],
+                        'status':assignment['status']
 
+                    }
+                }},
+                upsert=True
+            )
+            #Initial Task Collection
+            db.tasks.insert_one(
+                {'group_id': ObjectId(group_id), 'assignment_id': _id})
+
+            members = db.groupworks.find_one(
+                {'_id':ObjectId(group_id)},
+                {'_id':False,'members':True}
+            )
+            reviews = []
+            points = []
+            for member in members['members']:
+                reviews.append({
+                    'reviewer':member['email'],
+                    'reviewed':[
+
+                    ]
+                })
+                points.append({
+                    'member':member['email'],
+                    'points':50
+                })
+            
+
+            #Initial PeersReview Collection
+            db.peer_review.insert_one(
+                {
+                    '_id':ObjectId(),
+                    'assignment_id':_id,
+                    'points':points,
+                    'reviews':reviews
                 }
-            }},
-            upsert=True
-        )
-        #Initial Task Collection
-        db.tasks.insert_one(
-            {'group_id': ObjectId(group_id), 'assignment_id': _id})
+            )
+        except:
+            abort(400,message='Some problem occur. please try again')
 
-        members = db.groupworks.find_one(
-            {'_id':ObjectId(group_id)},
-            {'_id':False,'members':True}
-        )
-        reviews = []
-        points = []
-        for member in members['members']:
-            reviews.append({
-                'reviewer':member['email'],
-                'reviewed':[
+        return {"message": "Assignment Created"}, 200
 
-                ]
-            })
-            points.append({
-                'member':member['email'],
-                'points':50
-            })
-        
-
-        #Initial PeersReview Collection
-        db.peer_review.insert_one(
-            {
-                '_id':ObjectId(),
-                'assignment_id':_id,
-                'points':points,
-                'reviews':reviews
-            }
-        )
 
        
 
@@ -635,9 +641,9 @@ class PeerReview(Resource):
 
 
 class PeerReviewScoreAssignment(Resource):
+    @jwt_required
     def get(self,assignment_id):
-        current_user = "aiman@gmail.com"
-
+        current_user = get_jwt_identity()
         data = db.peer_review.aggregate(
             [
                 {

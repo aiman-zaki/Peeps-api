@@ -51,6 +51,28 @@ class Forum(Resource):
             }},
             upsert=True
         )
+    
+    @jwt_required
+    def put(self,course):
+        forum_id = request.json['forum_id']
+        try:
+             db.collaborate.update_one(
+                {'course':course},
+                {'$pull':{
+                    'discussions':{
+                        '_id':ObjectId(forum_id)
+                    }
+                }}
+            )
+        except:
+            abort(400,message="someshit happen")
+            
+        return {'message':'forum deleted'},200
+        
+
+        
+
+        
 
 
 class Discussion(Resource):

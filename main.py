@@ -24,11 +24,11 @@ CORS(app)
 mail = Mail(app)
 jwt = JWTManager(app)
 socketio = SocketIO(app)
-client = MongoClient("mongodb://%s:%s@mongodb:27017/" % ("admin","password"))
+client = MongoClient("mongodb://%s:%s@127.0.0.1:27017/" % ("admin","password"))
 db = client.api
 socketio = SocketIO(app)
 app.config.from_object('config')
 
 def mongodb_connect():
-    client = MongoClient("mongodb://%s:%s@mongodb:27017/" % ("admin","password"))
+    client = MongoClient("mongodb://%s:%s@127.0.0.1:27017/" % ("admin","password"))
     return client.api

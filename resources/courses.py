@@ -1,4 +1,4 @@
-from pymongo import MongoClient, ReturnDocument, InsertOne, DeleteMany, ReplaceOne, UpdateOne
+from pymongo import MongoClient, ReturnDocument, InsertOne, DeleteMany, ReplaceOne, UpdateOne , UpdateMany
 from flask_jwt_extended import (
     JWTManager, jwt_required, create_access_token,
     get_jwt_identity,decode_token,create_refresh_token,jwt_refresh_token_required,
@@ -23,12 +23,17 @@ class Courses(Resource):
     def get(self):
         courses = db.courses.find()
         return Response(
-            list(courses),
+            json_util.dumps(courses),
             mimetype='application/json'
         )
+
     def post(self):
         data = request.json 
-        db.courses.insert_one(data)
+        try:
+            db.courses.insert_one(data)
+        except:
+            abort(400,message="failed, try later")
+        return {'message':'New Course added'},200
 
 class Course(Resource):
     def get(self,code):
@@ -40,6 +45,20 @@ class Course(Resource):
             list(course),
             mimetype='application/json'
         )
+
+    def put(self,code):
+        data = request.json
+
+        db.courses.update_one({
+            'code':code,
+        },{
+            '$set':{
+                'code':data['code'],
+                'name':data['name']
+            }
+        })
+
+   
 
 class SupervisorCourse(Resource):
     @jwt_required

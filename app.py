@@ -18,7 +18,7 @@ from werkzeug.serving import run_simple
 import config
 import socket
 from main import app, jwt , api , socketio
-from resources import auth,users,groupworks,assignments,inbox,stash,groupwork_socket,forum,timeline,question,supervisor,courses,stash,stats,notify
+from resources import auth,users,groupworks,assignments,inbox,stash,groupwork_socket,forum,timeline,question,supervisor,courses,stash,stats,notify,bulletin_board
 '''
 TODO: migrate to mongoengine 
 
@@ -106,6 +106,7 @@ api.add_resource(users.UserAssignmentsAndTasks,'/api/user/tasks')
 api.add_resource(users.Role,'/api/user/role')
 api.add_resource(users.ActiveGroupworks, '/api/user/groupworks')
 api.add_resource(users.UserAssignments,'/api/user/assignments')
+api.add_resource(users.GenerateAllTimeUserStats, '/api/user/stats')
 
 #Groupworks API
 api.add_resource(groupworks.Groupworks, '/api/groupworks')
@@ -123,6 +124,7 @@ api.add_resource(assignments.AssignmentDelete, '/api/groupworks/<group_id>/assig
 api.add_resource(assignments.AssignmentStatus, '/api/groupworks/<group_id>/assignments/status')
 api.add_resource(timeline.AssignmentTimeline,'/api/groupworks/<group_id>/<assignment_id>/contributions')
 api.add_resource(timeline.AssignmentUserOnyScore,'/api/groupworks/<group_id>/<assignment_id>/contributions/user')
+api.add_resource(supervisor.GroupworkAnnouncements, '/api/groupworks/<group_id>/supervisor/messages')
 
 api.add_resource(timeline.Timeline,'/api/groupworks/<group_id>/timelines')
 api.add_resource(stash.References,'/api/groupworks/<group_id>/references')
@@ -158,6 +160,8 @@ api.add_resource(question.InitQuestions, '/api/questions/init')
 #Supervisor
 api.add_resource(courses.SupervisorCourse,'/api/supervisor/courses')
 api.add_resource(supervisor.SuperviseGroupworks, '/api/supervisor/groupworks')
+api.add_resource(supervisor.CreateGroupworkAnnouncement, '/api/supervisor/groupwork/message')
+
 api.add_resource(courses.SupervisorGroupworkTemplate,'/api/supervisor/<code>/templates')
 
 #course
@@ -171,6 +175,9 @@ api.add_resource(stats.UsersActivePerWeek,'/api/stats/users/perweek')
 #notification
 
 api.add_resource(notify.SupervisorNotified,'/api/user/notify/supervisor/notified')
+
+#bulletin_board
+api.add_resource(bulletin_board.Bulletin,'/api/bulletin_board/bulletin')
 
 
 #Socket-IO Namespace

@@ -37,16 +37,21 @@ class References(Resource):
         )
     
     def post(self,group_id):
-        reference = request.json
-        reference['_id'] = ObjectId()
-        reference.pop('room',None)
-        db.stash.update_one(
-            {'group_id':ObjectId(group_id)},
-            {'$addToSet':{
-                'references':reference
-            }}
-        ,upsert=True
-        )
+        try:
+            reference = request.json
+            reference['_id'] = ObjectId()
+            reference.pop('room',None)
+            db.stash.update_one(
+                {'group_id':ObjectId(group_id)},
+                {'$addToSet':{
+                    'references':reference
+                }}
+            ,upsert=True
+            )
+        except:
+            abort(400,message="something went wrong")
+
+        return {'message':'references inserted'},200
 
 class PublicReferences(Resource):
     def get(self,group_id):
