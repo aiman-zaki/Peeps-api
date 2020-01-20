@@ -49,24 +49,11 @@ class Assignments(Resource):
                 'assignments': True,
             }
         )
-        #get user point
-        if data is not None:
-            for assignment in data['assignments']:
-                point = db.peer_review.find_one({
-                    'assignment_id':assignment['_id'],
-                    'points.member':current_user,
-                },{
-                    '_id':False,
-                    'points.$':True
-                })
-                assignment['user_point'] = point['points'][0]['points']
-            
-
-            return Response(
-                json_util.dumps(data['assignments']),
-                mimetype='application/json'
-            )
-        return []
+        return Response(
+            json_util.dumps(data['assignments']),
+            mimetype='application/json'
+        )
+        
 
     def post(self, group_id):
         try:
@@ -99,7 +86,6 @@ class Assignments(Resource):
                 {'_id':False,'members':True}
             )
             reviews = []
-            points = []
             for member in members['members']:
                 reviews.append({
                     'reviewer':member['email'],
@@ -107,10 +93,7 @@ class Assignments(Resource):
 
                     ]
                 })
-                points.append({
-                    'member':member['email'],
-                    'points':50
-                })
+            
             
 
             #Initial PeersReview Collection
@@ -118,7 +101,6 @@ class Assignments(Resource):
                 {
                     '_id':ObjectId(),
                     'assignment_id':_id,
-                    'points':points,
                     'reviews':reviews
                 }
             )

@@ -637,17 +637,7 @@ class Requests(Resource):
                 {'assignments':True,'_id':False}
             )
 
-            for assignment in assignments['assignments']:
-                db.peer_review.update_one({
-                    'assignment_id':assignment['_id']
-                },{
-                    '$addToSet':{
-                        'points':{
-                            'member':email,
-                            'points':50
-                        }
-                    }
-                })
+ 
 
                
 
