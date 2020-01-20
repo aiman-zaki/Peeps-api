@@ -11,10 +11,10 @@ node {
     }
     stage('docker update'){
         sh '''#!/bin/bash
-            docker rm -f peeps
-            docker-compose stop
-            eval $(cat .env | sed 's/^/export /')
-            docker stack deploy -c docker-compose.yml peeps
+            #docker rm -f peeps
+            #docker-compose stop
+            #eval $(cat .env | sed 's/^/export /')
+            #docker stack deploy -c docker-compose.yml peeps
         '''
     }
 
