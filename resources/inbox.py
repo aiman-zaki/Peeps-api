@@ -137,7 +137,6 @@ class ReplyInvitationInbox(Resource):
                     '_id':False,'assignments':True
                 }
             )
-            print(assignments)
 
             for assignment in assignments['assignments']:
                 print(assignment)
@@ -160,16 +159,6 @@ class ReplyInvitationInbox(Resource):
                         },
                     }
                 )
-                db.timelines.update_one(
-                    {
-                        'group_id':ObjectId(group_id),
-                    },{
-                        '$addToSet':{
-                            'contributions':{
-                                'assignment_id':ObjectId(assignment['_id'])
-                            }
-                        }
-                    },upsert=True
-                )
+        
                 
        

@@ -22,7 +22,6 @@ from .timeline import calculate_assignment_score
 import PIL.Image
 
 def convert_string_to_datetime(datetimestring):
-    date = "2020-01-15 09:42:09.436924"
     date_format = "%Y-%m-%d %H:%M:%S.%f"
 
     return datetime.strptime(datetimestring,date_format)

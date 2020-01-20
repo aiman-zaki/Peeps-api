@@ -83,7 +83,8 @@ class Assignments(Resource):
                         'total_marks': assignment['total_marks'],
                         'created_date': assignment['created_date'],
                         'due_date': assignment['due_date'],
-                        'status':assignment['status']
+                        'status':assignment['status'],
+                        'accepted_date':None,
 
                     }
                 }},

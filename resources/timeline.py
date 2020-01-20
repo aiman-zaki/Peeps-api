@@ -17,25 +17,84 @@ from werkzeug.utils import secure_filename
 from werkzeug.datastructures import FileStorage
 from bson import json_util
 from main import db, app
+from datetime import datetime
+
 from bson.json_util import dumps, ObjectId
 import PIL.Image
 
+def convert_string_to_datetime(datetimestring):
+    date_format = "%Y-%m-%d %H:%M:%S.%f"
+
+    return datetime.strptime(datetimestring,date_format)
+
 def create_action(data):
-    return 5
+    #Material
+    if data['where'] == 5:
+        return 1
+    
+    #Suggestion
+    if data['where'] == 4:
+        return 1
+    return 1
+
 
 def receive_action(data):
     return 4
 
 def update_action(data):
-    return 3
+    print(data['why'])
+    #task
+    if data['where'] == 2:
+        #do to ongoing
+        if "todo" in data['why']  and "ongoing" in data['how']:
+            print("oi")
+            return 1
+        if "ongoing" in data['why'] and "todo" in data['how']:
+            return -1
+        if "done" in data['how']:
+            print("DONE")
+            task = db.tasks.find_one({
+                'assignment_id':ObjectId(data['assignment_id']),
+                'tasks._id':ObjectId(data['task_id'])
+            },{
+                '_id':False,'tasks.$':True
+            })
+
+            if task is not None:
+                #check if task is accepted by leader
+                task = task['tasks'][0]
+                if task['accepted_date'] is not None:
+
+                    accepted_date = convert_string_to_datetime(task['accepted_date'])
+                    due_date = convert_string_to_datetime(task['due_date'])
+                    diff = due_date - accepted_date
+                    if diff.days > 0:
+                        return 4
+                    else:
+                        return 1
+
+            print(task)
+
+
+
+
+    return 0
+
+    
 
 def delete_action(data):
-    return 1
+    return 0
 
 def request_action(data):
-    return 2
+    #task
+    if data['where'] == 2:
+        return 1
+
+    return 0
 
 def accept_action(data):
+    if data['where'] == 2:
+        return 1
     return 1
 
 def deny_action(data):
@@ -88,19 +147,19 @@ def calculate_assignment_score(current_user,group_id,assignment_id):
 
     for contribution in data['contribution']:
         if(contribution['what'] ==  0):
-            score = score + create_action(contribution['what'])
+            score = score + create_action(contribution)
         elif(contribution['what'] ==  1):
-            score = score + receive_action(contribution['what'])
+            score = score + receive_action(contribution)
         elif(contribution['what'] ==  2):
-            score = score + update_action(contribution['what'])
+            score = score + update_action(contribution)
         elif(contribution['what'] ==  3):
-            score = score + delete_action(contribution['what'])
+            score = score + delete_action(contribution)
         elif(contribution['what'] ==  4):
-            score = score + request_action(contribution['what'])
+            score = score + request_action(contribution)
         elif(contribution['what'] ==  5):
-            score = score + accept_action(contribution['what'])
+            score = score + accept_action(contribution)
         elif(contribution['what'] ==  6):
-            score = score + deny_action(contribution['what'])
+            score = score + deny_action(contribution)
             
 
     return {'score':score, 'contributions': data['contribution']}

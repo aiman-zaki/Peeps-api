@@ -110,6 +110,7 @@ def generate_assignments_template(group_id,assignment_id,assignment_template):
                 'created_date': datetimestring,
                 'start_date':assignment_template['start_date'],
                 'due_date': assignment_template['due_date'],
+                'accepted_date':None,
                 'status': 1,
                 'approval':2,
             }
@@ -184,6 +185,7 @@ class Groupworks(Resource):
         groupwork['_id'] = _id
         groupwork['creator'] = current_user
         groupwork['assignments'] = []
+        groupwork['supervisor_messages'] = []
         if groupwork['template_id'] is not None:
             try:
                 groupwork['template_id'] = ObjectId(groupwork['template_id'])
@@ -571,12 +573,13 @@ class Requests(Resource):
             {'requests': True, '_id': False}
         )
 
-        print(data)
-
-        return Response(
-            json_util.dumps(data['requests']),
-            mimetype="application/json",
-        )
+        if 'requests' in data:
+            return Response(
+                json_util.dumps(data['requests']),
+                mimetype="application/json",
+            )
+        else :
+            return []
 
     def put(self, group_id):
 
@@ -646,16 +649,6 @@ class Requests(Resource):
                     }
                 })
 
-                db.peer_review.update_one({
-                    'assignment_id':assignment['_id']
-                },{
-                    '$addToSet':{
-                        'reviews':{
-                            'reviewer':email,
-                            'reviewed':[]
-                        }
-                    }
-                })
-
+               
 
           

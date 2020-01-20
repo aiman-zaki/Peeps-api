@@ -48,21 +48,30 @@ class GroupworkAnnouncements(Resource):
     def get(self,group_id):
         data = db.groupworks.find_one({'_id':ObjectId(group_id)},{'_id':False,'supervisor_messages':True})
         return Response(
-            json_util.dumps(data['supervisor_message'])
+            json_util.dumps(data['supervisor_messages']),
+            mimetype='application/json'
         )
 
     @jwt_required
     def post(self,group_id):
-        data = request.json
-        db.groupworks.update_one({'_id':ObjectId(group_id)},{'$addToset':{
+        data = request.json['data']
+        data['_id'] = ObjectId()
+        data['email'] = get_jwt_identity()
+        group_id = request.json['group_id']
+        db.groupworks.update_one({'_id':ObjectId(group_id)},{'$addToSet':{
             'supervisor_messages':data
-        }})
+        }},upsert=True)
 
 
 class CreateGroupworkAnnouncement(Resource):
     @jwt_required
     def post(self):
-        data = request.json
-        db.groupworks.update_one({'_id':ObjectId(data['group_id'])},{'$addToset':{
+        print("asasa")
+        print(request.json)
+        data = request.json['data']
+        data['_id'] = ObjectId()
+        data['email'] = get_jwt_identity()
+        group_id = request.json['group_id']
+        db.groupworks.update_one({'_id':ObjectId(group_id)},{'$addToset':{
             'supervisor_messages':data
-        }})
+        }},upsert=True)
