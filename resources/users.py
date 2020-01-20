@@ -235,14 +235,15 @@ def calculateTaskState(data,current_user,assignment_id):
         for task in tasks['tasks']:
             if task['assign_to'] == current_user:
                 task_assigned = task_assigned + 1
-                if task['accepted_date'] is not None:
-                    due_date = convert_string_to_datetime(task['due_date'])
-                    accepted_date = convert_string_to_datetime( task['accepted_date'])
-                    diff = due_date - accepted_date
-                    if diff.days > 0:
-                        task_submitted_before_due_date = task_submitted_before_due_date + 1
-                    else:
-                        task_subbmited_after_due_date= task_subbmited_after_due_date + 1
+                if 'accepted_date' in task:
+                    if task['accepted_date'] is not None:
+                        due_date = convert_string_to_datetime(task['due_date'])
+                        accepted_date = convert_string_to_datetime( task['accepted_date'])
+                        diff = due_date - accepted_date
+                        if diff.days > 0:
+                            task_submitted_before_due_date = task_submitted_before_due_date + 1
+                        else:
+                            task_subbmited_after_due_date= task_subbmited_after_due_date + 1
                 
                 
 
